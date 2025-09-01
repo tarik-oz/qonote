@@ -1,0 +1,6 @@
+@Qonote.Api_HostAddress = http://localhost:5068
+
+GET {{Qonote.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
