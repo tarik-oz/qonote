@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Qonote.Domain.Common
 {
-    public abstract class BaseEntity<TKey>
+    public abstract class BaseEntity<TKey> : IEntityBase
     {
         public TKey Id { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

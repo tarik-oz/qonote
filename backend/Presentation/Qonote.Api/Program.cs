@@ -7,6 +7,8 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+var connectionString = builder.Configuration.GetConnectionString("QonoteDbConnection");
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

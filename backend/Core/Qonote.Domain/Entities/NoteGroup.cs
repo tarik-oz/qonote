@@ -11,6 +11,7 @@ namespace Qonote.Domain.Entities
     public class NoteGroup : BaseEntity<int>
     {
         public string Name { get; set; } = string.Empty;
+        public int Order { get; set; } = 0;
 
         // Foreign Key
         public string UserId { get; set; } = string.Empty;

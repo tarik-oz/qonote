@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: qonote-db
+    ports:
+      - "5432:5432"
+    restart: always
+    environment:
+      - POSTGRES_USER=qonote_user
+      - POSTGRES_PASSWORD=qonote_password
+      - POSTGRES_DB=qonote_db
+    volumes:
+      - qonote_postgres_data:/var/lib/postgresql/data/
+
+volumes:
+  qonote_postgres_data:

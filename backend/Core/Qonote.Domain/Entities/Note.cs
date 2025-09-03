@@ -22,6 +22,7 @@ namespace Qonote.Domain.Entities
         public string? UserLink3 { get; set; }
         public bool IsPublic { get; set; } = false;
         public Guid? PublicShareGuid { get; set; }
+        public int Order { get; set; } = 0;
 
         // Foreign Keys
         public string UserId { get; set; } = string.Empty;
