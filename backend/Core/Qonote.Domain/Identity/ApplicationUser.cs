@@ -1,22 +1,23 @@
-﻿using Qonote.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Identity;
+using Qonote.Domain.Common;
+using Qonote.Domain.Entities;
 
-namespace Qonote.Domain.Identity
+namespace Qonote.Domain.Identity;
+
+public class ApplicationUser : IdentityUser, IEntityBase<string>
 {
-    // TODO: Uncomment the inheritance from IdentityUser when integrating with ASP.NET Core Identity
-    public class ApplicationUser //: IdentityUser
-    {
-        public string FullName { get; set; } = string.Empty;
-        public string? ProfileImageUrl { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public string FullName { get; set; } = string.Empty;
+    public string? ProfileImageUrl { get; set; }
+    public string? RefreshToken { get; set; }
+    public DateTime? RefreshTokenExpiryTime { get; set; }
 
-        // Navigation Properties
-        public virtual ICollection<NoteGroup> NoteGroups { get; set; } = new List<NoteGroup>();
-        public virtual ICollection<Note> Notes { get; set; } = new List<Note>();
-        public virtual ICollection<SectionUIState> SectionUIStates { get; set; } = new List<SectionUIState>();
-    }
+    // Properties from IEntityBase
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; } = false;
+
+    // Navigation Properties
+    public ICollection<NoteGroup> NoteGroups { get; set; } = new List<NoteGroup>();
+    public ICollection<Note> Notes { get; set; } = new List<Note>();
+    public ICollection<SectionUIState> SectionUIStates { get; set; } = new List<SectionUIState>();
 }

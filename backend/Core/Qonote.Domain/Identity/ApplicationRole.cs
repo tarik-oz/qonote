@@ -1,13 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Identity;
+using Qonote.Domain.Common;
 
-namespace Qonote.Domain.Identity
+namespace Qonote.Domain.Identity;
+
+public class ApplicationRole : IdentityRole, IEntityBase<string>
 {
-    // TODO: Uncomment the inheritance from IdentityRole when integrating with ASP.NET Core Identity
-    public class ApplicationRole //: IdentityRole
-    {
-    }
+    // Properties from IEntityBase
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; } = false;
 }

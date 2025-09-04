@@ -1,14 +1,9 @@
 ﻿using Qonote.Domain.Common;
 using Qonote.Domain.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Qonote.Domain.Entities
 {
-    public class Section : BaseEntity<int>
+    public class Section : EntityBase<int>
     {
         public string Title { get; set; } = string.Empty;
         public TimeSpan StartTime { get; set; }
@@ -20,8 +15,8 @@ namespace Qonote.Domain.Entities
         public int NoteId { get; set; }
 
         // Navigation Properties
-        public virtual Note Note { get; set; } = null!;
-        public virtual ICollection<Block> Blocks { get; set; } = new List<Block>();
-        public virtual ICollection<SectionUIState> SectionUIStates { get; set; } = new List<SectionUIState>();
+        public Note Note { get; set; } = null!;
+        public ICollection<Block> Blocks { get; set; } = new List<Block>();
+        public ICollection<SectionUIState> SectionUIStates { get; set; } = new List<SectionUIState>();
     }
 }

@@ -1,15 +1,9 @@
 ﻿using Qonote.Domain.Common;
 using Qonote.Domain.Identity;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Collections.Specialized.BitVector32;
 
 namespace Qonote.Domain.Entities
 {
-    public class Note : BaseEntity<int>
+    public class Note : EntityBase<int>
     {
         public string CustomTitle { get; set; } = string.Empty;
         public string YoutubeUrl { get; set; } = string.Empty;
@@ -29,8 +23,8 @@ namespace Qonote.Domain.Entities
         public int? NoteGroupId { get; set; }
 
         // Navigation Properties
-        public virtual ApplicationUser User { get; set; } = null!;
-        public virtual NoteGroup? NoteGroup { get; set; }
-        public virtual ICollection<Section> Sections { get; set; } = new List<Section>();
+        public ApplicationUser User { get; set; } = null!;
+        public NoteGroup? NoteGroup { get; set; }
+        public ICollection<Section> Sections { get; set; } = new List<Section>();
     }
 }

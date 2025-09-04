@@ -1,9 +1,4 @@
 ﻿using Qonote.Domain.Identity;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Qonote.Domain.Entities
 {
@@ -19,7 +14,7 @@ namespace Qonote.Domain.Entities
         public int SectionId { get; set; }
 
         // Navigation Properties
-        public virtual ApplicationUser User { get; set; } = null!;
-        public virtual Section Section { get; set; } = null!;
+        public ApplicationUser User { get; set; } = null!;
+        public Section Section { get; set; } = null!;
     }
 }

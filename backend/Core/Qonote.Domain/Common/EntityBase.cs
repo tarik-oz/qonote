@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Qonote.Domain.Common
+﻿namespace Qonote.Domain.Common
 {
-    public abstract class BaseEntity<TKey> : IEntityBase
+    public abstract class EntityBase<TKey> : IEntityBase<TKey>
     {
         public TKey Id { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
