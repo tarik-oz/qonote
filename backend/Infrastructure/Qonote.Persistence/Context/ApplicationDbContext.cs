@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using Qonote.Domain.Entities;
-using Qonote.Domain.Identity;
+using Qonote.Core.Domain.Entities;
+using Qonote.Core.Domain.Identity;
 
 namespace Qonote.Infrastructure.Persistence.Context;
 

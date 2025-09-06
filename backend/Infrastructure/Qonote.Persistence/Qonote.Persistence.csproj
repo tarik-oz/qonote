@@ -2,11 +2,13 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Qonote.Infrastructure.Persistence</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Core\Qonote.Application\Qonote.Application.csproj" />
     <ProjectReference Include="..\..\Core\Qonote.Domain\Qonote.Domain.csproj" />
   </ItemGroup>
 

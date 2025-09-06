@@ -1,6 +1,6 @@
-﻿using Qonote.Domain.Identity;
+﻿using Qonote.Core.Domain.Identity;
 
-namespace Qonote.Domain.Entities
+namespace Qonote.Core.Domain.Entities
 {
     public class SectionUIState
     {

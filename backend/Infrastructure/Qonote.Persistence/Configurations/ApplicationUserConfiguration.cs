@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Qonote.Domain.Identity;
+using Qonote.Core.Domain.Identity;
 
 namespace Qonote.Infrastructure.Persistence.Configurations;
 

@@ -1,4 +1,4 @@
-namespace Qonote.Domain.Common
+namespace Qonote.Core.Domain.Common
 {
     public interface IEntityBase<TKey>
     {

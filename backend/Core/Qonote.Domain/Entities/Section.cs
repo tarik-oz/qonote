@@ -1,7 +1,7 @@
-﻿using Qonote.Domain.Common;
-using Qonote.Domain.Enums;
+﻿using Qonote.Core.Domain.Common;
+using Qonote.Core.Domain.Enums;
 
-namespace Qonote.Domain.Entities
+namespace Qonote.Core.Domain.Entities
 {
     public class Section : EntityBase<int>
     {

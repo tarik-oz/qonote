@@ -1,7 +1,7 @@
-﻿using Qonote.Domain.Common;
-using Qonote.Domain.Identity;
+﻿using Qonote.Core.Domain.Common;
+using Qonote.Core.Domain.Identity;
 
-namespace Qonote.Domain.Entities
+namespace Qonote.Core.Domain.Entities
 {
     public class Note : EntityBase<int>
     {

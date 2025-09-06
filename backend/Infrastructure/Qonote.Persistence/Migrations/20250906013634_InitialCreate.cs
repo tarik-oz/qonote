@@ -6,7 +6,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
 
-namespace Qonote.Persistence.Migrations
+namespace Qonote.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration
@@ -315,9 +315,9 @@ namespace Qonote.Persistence.Migrations
                 columns: new[] { "Id", "ConcurrencyStamp", "CreatedAt", "IsDeleted", "Name", "NormalizedName", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { "56a46817-453e-4411-a4b2-3e39738a54e6", null, new DateTime(2025, 9, 4, 21, 31, 18, 174, DateTimeKind.Utc).AddTicks(5235), false, "Admin", "ADMIN", null },
-                    { "63963366-0231-4766-b9e4-6055cf0e6962", null, new DateTime(2025, 9, 4, 21, 31, 18, 174, DateTimeKind.Utc).AddTicks(5291), false, "FreeUser", "FREEUSER", null },
-                    { "68447fff-20f8-4937-802c-2696a76d3bd5", null, new DateTime(2025, 9, 4, 21, 31, 18, 174, DateTimeKind.Utc).AddTicks(5303), false, "PremiumUser", "PREMIUMUSER", null }
+                    { "39c7e45d-b301-4b71-b6f3-f814242614a9", null, new DateTime(2025, 9, 6, 1, 36, 33, 600, DateTimeKind.Utc).AddTicks(4008), false, "Admin", "ADMIN", null },
+                    { "6763807d-cdb6-401d-9dec-efecfa30fd5a", null, new DateTime(2025, 9, 6, 1, 36, 33, 600, DateTimeKind.Utc).AddTicks(4063), false, "FreeUser", "FREEUSER", null },
+                    { "a03877ce-076c-4ae8-8a56-ab183340429d", null, new DateTime(2025, 9, 6, 1, 36, 33, 600, DateTimeKind.Utc).AddTicks(4067), false, "PremiumUser", "PREMIUMUSER", null }
                 });
 
             migrationBuilder.CreateIndex(

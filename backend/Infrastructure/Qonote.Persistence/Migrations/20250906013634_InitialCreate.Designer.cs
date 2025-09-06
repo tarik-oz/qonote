@@ -9,10 +9,10 @@ using Qonote.Infrastructure.Persistence.Context;
 
 #nullable disable
 
-namespace Qonote.Persistence.Migrations
+namespace Qonote.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250904213118_InitialCreate")]
+    [Migration("20250906013634_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -131,7 +131,7 @@ namespace Qonote.Persistence.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Qonote.Domain.Entities.Block", b =>
+            modelBuilder.Entity("Qonote.Core.Domain.Entities.Block", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -166,7 +166,7 @@ namespace Qonote.Persistence.Migrations
                     b.ToTable("Blocks");
                 });
 
-            modelBuilder.Entity("Qonote.Domain.Entities.Note", b =>
+            modelBuilder.Entity("Qonote.Core.Domain.Entities.Note", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -245,7 +245,7 @@ namespace Qonote.Persistence.Migrations
                     b.ToTable("Notes");
                 });
 
-            modelBuilder.Entity("Qonote.Domain.Entities.NoteGroup", b =>
+            modelBuilder.Entity("Qonote.Core.Domain.Entities.NoteGroup", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -281,7 +281,7 @@ namespace Qonote.Persistence.Migrations
                     b.ToTable("NoteGroups");
                 });
 
-            modelBuilder.Entity("Qonote.Domain.Entities.Section", b =>
+            modelBuilder.Entity("Qonote.Core.Domain.Entities.Section", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -325,7 +325,7 @@ namespace Qonote.Persistence.Migrations
                     b.ToTable("Sections");
                 });
 
-            modelBuilder.Entity("Qonote.Domain.Entities.SectionUIState", b =>
+            modelBuilder.Entity("Qonote.Core.Domain.Entities.SectionUIState", b =>
                 {
                     b.Property<string>("UserId")
                         .HasColumnType("text");
@@ -343,7 +343,7 @@ namespace Qonote.Persistence.Migrations
                     b.ToTable("SectionUIStates");
                 });
 
-            modelBuilder.Entity("Qonote.Domain.Identity.ApplicationRole", b =>
+            modelBuilder.Entity("Qonote.Core.Domain.Identity.ApplicationRole", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("text");
@@ -380,31 +380,31 @@ namespace Qonote.Persistence.Migrations
                     b.HasData(
                         new
                         {
-                            Id = "56a46817-453e-4411-a4b2-3e39738a54e6",
-                            CreatedAt = new DateTime(2025, 9, 4, 21, 31, 18, 174, DateTimeKind.Utc).AddTicks(5235),
+                            Id = "39c7e45d-b301-4b71-b6f3-f814242614a9",
+                            CreatedAt = new DateTime(2025, 9, 6, 1, 36, 33, 600, DateTimeKind.Utc).AddTicks(4008),
                             IsDeleted = false,
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         },
                         new
                         {
-                            Id = "63963366-0231-4766-b9e4-6055cf0e6962",
-                            CreatedAt = new DateTime(2025, 9, 4, 21, 31, 18, 174, DateTimeKind.Utc).AddTicks(5291),
+                            Id = "6763807d-cdb6-401d-9dec-efecfa30fd5a",
+                            CreatedAt = new DateTime(2025, 9, 6, 1, 36, 33, 600, DateTimeKind.Utc).AddTicks(4063),
                             IsDeleted = false,
                             Name = "FreeUser",
                             NormalizedName = "FREEUSER"
                         },
                         new
                         {
-                            Id = "68447fff-20f8-4937-802c-2696a76d3bd5",
-                            CreatedAt = new DateTime(2025, 9, 4, 21, 31, 18, 174, DateTimeKind.Utc).AddTicks(5303),
+                            Id = "a03877ce-076c-4ae8-8a56-ab183340429d",
+                            CreatedAt = new DateTime(2025, 9, 6, 1, 36, 33, 600, DateTimeKind.Utc).AddTicks(4067),
                             IsDeleted = false,
                             Name = "PremiumUser",
                             NormalizedName = "PREMIUMUSER"
                         });
                 });
 
-            modelBuilder.Entity("Qonote.Domain.Identity.ApplicationUser", b =>
+            modelBuilder.Entity("Qonote.Core.Domain.Identity.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("text");
@@ -494,7 +494,7 @@ namespace Qonote.Persistence.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
-                    b.HasOne("Qonote.Domain.Identity.ApplicationRole", null)
+                    b.HasOne("Qonote.Core.Domain.Identity.ApplicationRole", null)
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -503,7 +503,7 @@ namespace Qonote.Persistence.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
-                    b.HasOne("Qonote.Domain.Identity.ApplicationUser", null)
+                    b.HasOne("Qonote.Core.Domain.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -512,7 +512,7 @@ namespace Qonote.Persistence.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
-                    b.HasOne("Qonote.Domain.Identity.ApplicationUser", null)
+                    b.HasOne("Qonote.Core.Domain.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -521,13 +521,13 @@ namespace Qonote.Persistence.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
                 {
-                    b.HasOne("Qonote.Domain.Identity.ApplicationRole", null)
+                    b.HasOne("Qonote.Core.Domain.Identity.ApplicationRole", null)
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Qonote.Domain.Identity.ApplicationUser", null)
+                    b.HasOne("Qonote.Core.Domain.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -536,16 +536,16 @@ namespace Qonote.Persistence.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
-                    b.HasOne("Qonote.Domain.Identity.ApplicationUser", null)
+                    b.HasOne("Qonote.Core.Domain.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Qonote.Domain.Entities.Block", b =>
+            modelBuilder.Entity("Qonote.Core.Domain.Entities.Block", b =>
                 {
-                    b.HasOne("Qonote.Domain.Entities.Section", "Section")
+                    b.HasOne("Qonote.Core.Domain.Entities.Section", "Section")
                         .WithMany("Blocks")
                         .HasForeignKey("SectionId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -554,14 +554,14 @@ namespace Qonote.Persistence.Migrations
                     b.Navigation("Section");
                 });
 
-            modelBuilder.Entity("Qonote.Domain.Entities.Note", b =>
+            modelBuilder.Entity("Qonote.Core.Domain.Entities.Note", b =>
                 {
-                    b.HasOne("Qonote.Domain.Entities.NoteGroup", "NoteGroup")
+                    b.HasOne("Qonote.Core.Domain.Entities.NoteGroup", "NoteGroup")
                         .WithMany("Notes")
                         .HasForeignKey("NoteGroupId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("Qonote.Domain.Identity.ApplicationUser", "User")
+                    b.HasOne("Qonote.Core.Domain.Identity.ApplicationUser", "User")
                         .WithMany("Notes")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -572,9 +572,9 @@ namespace Qonote.Persistence.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Qonote.Domain.Entities.NoteGroup", b =>
+            modelBuilder.Entity("Qonote.Core.Domain.Entities.NoteGroup", b =>
                 {
-                    b.HasOne("Qonote.Domain.Identity.ApplicationUser", "User")
+                    b.HasOne("Qonote.Core.Domain.Identity.ApplicationUser", "User")
                         .WithMany("NoteGroups")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -583,9 +583,9 @@ namespace Qonote.Persistence.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Qonote.Domain.Entities.Section", b =>
+            modelBuilder.Entity("Qonote.Core.Domain.Entities.Section", b =>
                 {
-                    b.HasOne("Qonote.Domain.Entities.Note", "Note")
+                    b.HasOne("Qonote.Core.Domain.Entities.Note", "Note")
                         .WithMany("Sections")
                         .HasForeignKey("NoteId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -594,15 +594,15 @@ namespace Qonote.Persistence.Migrations
                     b.Navigation("Note");
                 });
 
-            modelBuilder.Entity("Qonote.Domain.Entities.SectionUIState", b =>
+            modelBuilder.Entity("Qonote.Core.Domain.Entities.SectionUIState", b =>
                 {
-                    b.HasOne("Qonote.Domain.Entities.Section", "Section")
+                    b.HasOne("Qonote.Core.Domain.Entities.Section", "Section")
                         .WithMany("SectionUIStates")
                         .HasForeignKey("SectionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Qonote.Domain.Identity.ApplicationUser", "User")
+                    b.HasOne("Qonote.Core.Domain.Identity.ApplicationUser", "User")
                         .WithMany("SectionUIStates")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -613,24 +613,24 @@ namespace Qonote.Persistence.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Qonote.Domain.Entities.Note", b =>
+            modelBuilder.Entity("Qonote.Core.Domain.Entities.Note", b =>
                 {
                     b.Navigation("Sections");
                 });
 
-            modelBuilder.Entity("Qonote.Domain.Entities.NoteGroup", b =>
+            modelBuilder.Entity("Qonote.Core.Domain.Entities.NoteGroup", b =>
                 {
                     b.Navigation("Notes");
                 });
 
-            modelBuilder.Entity("Qonote.Domain.Entities.Section", b =>
+            modelBuilder.Entity("Qonote.Core.Domain.Entities.Section", b =>
                 {
                     b.Navigation("Blocks");
 
                     b.Navigation("SectionUIStates");
                 });
 
-            modelBuilder.Entity("Qonote.Domain.Identity.ApplicationUser", b =>
+            modelBuilder.Entity("Qonote.Core.Domain.Identity.ApplicationUser", b =>
                 {
                     b.Navigation("NoteGroups");
 

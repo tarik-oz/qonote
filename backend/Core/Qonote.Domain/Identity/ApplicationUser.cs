@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using Qonote.Domain.Common;
-using Qonote.Domain.Entities;
+using Qonote.Core.Domain.Common;
+using Qonote.Core.Domain.Entities;
 
-namespace Qonote.Domain.Identity;
+namespace Qonote.Core.Domain.Identity;
 
 public class ApplicationUser : IdentityUser, IEntityBase<string>
 {

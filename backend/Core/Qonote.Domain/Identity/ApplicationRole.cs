@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Identity;
-using Qonote.Domain.Common;
+using Qonote.Core.Domain.Common;
 
-namespace Qonote.Domain.Identity;
+namespace Qonote.Core.Domain.Identity;
 
 public class ApplicationRole : IdentityRole, IEntityBase<string>
 {

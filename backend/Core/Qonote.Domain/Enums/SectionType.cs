@@ -1,4 +1,4 @@
-﻿namespace Qonote.Domain.Enums
+﻿namespace Qonote.Core.Domain.Enums
 {
     public enum SectionType
     {
