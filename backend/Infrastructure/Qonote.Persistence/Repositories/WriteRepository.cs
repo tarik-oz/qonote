@@ -5,7 +5,7 @@ using Qonote.Infrastructure.Persistence.Context;
 
 namespace Qonote.Infrastructure.Persistence.Repositories;
 
-public class WriteRepository<T, TKey> : IWriteRepository<T, TKey>
+public class WriteRepository<T, TKey> : IWriteRepository<T, TKey> where TKey : notnull
     where T : class, IEntityBase<TKey>
 {
     private readonly ApplicationDbContext _context;

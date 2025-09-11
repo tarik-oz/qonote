@@ -6,7 +6,7 @@ using System.Linq.Expressions;
 
 namespace Qonote.Infrastructure.Persistence.Repositories;
 
-public class ReadRepository<T, TKey> : IReadRepository<T, TKey>
+public class ReadRepository<T, TKey> : IReadRepository<T, TKey> where TKey : notnull
     where T : class, IEntityBase<TKey>
 {
     private readonly ApplicationDbContext _context;
