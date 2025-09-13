@@ -1,6 +1,3 @@
-using System.Xml.Linq;
-using FluentValidation;
-using FluentValidation.Results;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Qonote.Core.Application.Exceptions;
@@ -19,15 +16,6 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, s
 
     public async Task<string> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
     {
-        var userWithSameEmail = await _userManager.FindByEmailAsync(request.Email);
-        if (userWithSameEmail != null)
-        {
-            throw new Exceptions.ValidationException(new List<ValidationFailure>
-        {
-            new("Email", $"'{request.Email}' email adresi zaten kayıtlı.")
-        });
-        }
-
         var user = new ApplicationUser
         {
             FullName = request.FullName,
@@ -39,11 +27,9 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, s
 
         if (!result.Succeeded)
         {
-            var identityErrors = result.Errors
-            .Select(e => new ValidationFailure(e.Code, e.Description))
-            .ToList();
-
-            throw new Exceptions.ValidationException(identityErrors);
+            // Map Identity errors into ValidationException to keep API errors consistent
+            throw new ValidationException(result.Errors
+                .Select(e => new FluentValidation.Results.ValidationFailure(e.Code, e.Description)));
         }
 
         return $"User {user.FullName} registered successfully.";

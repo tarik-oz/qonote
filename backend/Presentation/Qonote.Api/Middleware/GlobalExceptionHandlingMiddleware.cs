@@ -39,6 +39,11 @@ public class GlobalExceptionHandlingMiddleware : IMiddleware
                 apiError = new ApiError(validationEx.Message, validationEx.Errors, "validation_failure");
                 break;
 
+            case BusinessRuleException ruleEx:
+                statusCode = HttpStatusCode.UnprocessableEntity; // 422
+                apiError = new ApiError(ruleEx.Message, ruleEx.Errors, "business_rule_violation");
+                break;
+
             case NotFoundException notFoundEx:
                 statusCode = HttpStatusCode.NotFound; // 404
                 apiError = new ApiError(notFoundEx.Message, errorCode: "resource_not_found");
