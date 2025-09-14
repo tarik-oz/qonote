@@ -6,7 +6,8 @@ namespace Qonote.Core.Domain.Identity;
 
 public class ApplicationUser : IdentityUser, IEntityBase<string>
 {
-    public string FullName { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Surname { get; set; } = string.Empty;
     public string? ProfileImageUrl { get; set; }
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpiryTime { get; set; }

@@ -8,9 +8,13 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
 {
     public void Configure(EntityTypeBuilder<ApplicationUser> builder)
     {
-        builder.Property(u => u.FullName)
+        builder.Property(u => u.Name)
             .IsRequired()
-            .HasMaxLength(150);
+            .HasMaxLength(100);
+
+        builder.Property(u => u.Surname)
+            .IsRequired()
+            .HasMaxLength(100);
 
         builder.Property(u => u.RefreshToken)
             .HasMaxLength(256);

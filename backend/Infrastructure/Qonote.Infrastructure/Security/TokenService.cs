@@ -26,7 +26,7 @@ public class TokenService : ITokenService
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(JwtRegisteredClaimNames.Sub, user.Id),
             new(JwtRegisteredClaimNames.Email, user.Email!),
-            new("fullName", user.FullName),
+            new("fullName", $"{user.Name} {user.Surname}".Trim()),
         };
 
         foreach (var role in roles)

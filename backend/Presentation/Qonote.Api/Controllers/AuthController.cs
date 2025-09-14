@@ -1,6 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using Qonote.Core.Application.Features.Auth.Commands.Register;
+using Qonote.Core.Application.Features.Auth.Register;
 
 namespace Qonote.Presentation.Api.Controllers;
 

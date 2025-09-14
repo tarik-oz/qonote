@@ -1,0 +1,28 @@
+using Microsoft.AspNetCore.Identity;
+using Qonote.Core.Application.Abstractions.Rules;
+using Qonote.Core.Application.Abstractions.Rules.Models;
+using Qonote.Core.Application.Features.Auth.Register;
+using Qonote.Core.Domain.Identity;
+
+namespace Qonote.Core.Application.Features.Auth._Rules;
+
+public class EmailMustBeUniqueRule : IBusinessRule<RegisterUserCommand>
+{
+    private readonly UserManager<ApplicationUser> _userManager;
+
+    public EmailMustBeUniqueRule(UserManager<ApplicationUser> userManager)
+    {
+        _userManager = userManager;
+    }
+
+    public async Task<IEnumerable<RuleViolation>> CheckAsync(RegisterUserCommand request, CancellationToken cancellationToken)
+    {
+        var existing = await _userManager.FindByEmailAsync(request.Email);
+        if (existing is not null)
+        {
+            return new[] { new RuleViolation("Email", $"'{request.Email}' email adresi zaten kayıtlı.") };
+        }
+
+        return Array.Empty<RuleViolation>();
+    }
+}

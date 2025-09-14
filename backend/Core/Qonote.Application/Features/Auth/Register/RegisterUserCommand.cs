@@ -1,6 +1,6 @@
 using MediatR;
 
-namespace Qonote.Core.Application.Features.Auth.Commands.Register;
+namespace Qonote.Core.Application.Features.Auth.Register;
 
 public class RegisterUserCommand : IRequest<string>
 {

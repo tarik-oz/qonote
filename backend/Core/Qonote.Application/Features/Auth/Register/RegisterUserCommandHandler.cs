@@ -1,9 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Identity;
-using Qonote.Core.Application.Exceptions;
 using Qonote.Core.Domain.Identity;
 
-namespace Qonote.Core.Application.Features.Auth.Commands.Register;
+namespace Qonote.Core.Application.Features.Auth.Register;
 
 public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, string>
 {
@@ -29,7 +28,7 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, s
         if (!result.Succeeded)
         {
             // Map Identity errors into ValidationException to keep API errors consistent
-            throw new ValidationException(result.Errors
+            throw new Qonote.Core.Application.Exceptions.ValidationException(result.Errors
                 .Select(e => new FluentValidation.Results.ValidationFailure(e.Code, e.Description)));
         }
 

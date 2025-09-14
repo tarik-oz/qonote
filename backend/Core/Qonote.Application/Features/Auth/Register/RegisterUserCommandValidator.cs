@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Qonote.Core.Application.Features.Auth.Commands.Register;
+namespace Qonote.Core.Application.Features.Auth.Register;
 
 public class RegisterUserCommandValidator : AbstractValidator<RegisterUserCommand>
 {
