@@ -20,7 +20,7 @@ public class EmailMustBeUniqueRule : IBusinessRule<RegisterUserCommand>
         var existing = await _userManager.FindByEmailAsync(request.Email);
         if (existing is not null)
         {
-            return new[] { new RuleViolation("Email", $"'{request.Email}' email adresi zaten kayıtlı.") };
+            return new[] { new RuleViolation("Email", $"The email '{request.Email}' is already registered.") };
         }
 
         return Array.Empty<RuleViolation>();

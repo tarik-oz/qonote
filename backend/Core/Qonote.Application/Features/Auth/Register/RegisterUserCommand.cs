@@ -1,8 +1,9 @@
 using MediatR;
+using Qonote.Core.Application.Features.Auth._Shared;
 
 namespace Qonote.Core.Application.Features.Auth.Register;
 
-public class RegisterUserCommand : IRequest<string>
+public class RegisterUserCommand : IRequest<LoginResponseDto>
 {
     public string Name { get; set; } = string.Empty;
     public string Surname { get; set; } = string.Empty;

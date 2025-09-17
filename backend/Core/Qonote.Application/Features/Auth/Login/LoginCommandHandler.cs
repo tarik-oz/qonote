@@ -23,22 +23,21 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoginRes
         var user = await _userManager.FindByEmailAsync(request.Email);
         if (user is null)
         {
-            throw new ValidationException(new[] { new FluentValidation.Results.ValidationFailure("Email", "Kullanıcı bulunamadı.") });
+            throw new ValidationException(new[] { new FluentValidation.Results.ValidationFailure("Auth.Login", "Invalid email or password.") });
         }
 
         var passwordValid = await _userManager.CheckPasswordAsync(user, request.Password);
         if (!passwordValid)
         {
-            throw new ValidationException(new[] { new FluentValidation.Results.ValidationFailure("Password", "Geçersiz şifre.") });
+            throw new ValidationException(new[] { new FluentValidation.Results.ValidationFailure("Auth.Login", "Invalid email or password.") });
         }
 
         var roles = await _userManager.GetRolesAsync(user);
         var (accessToken, accessExpiry) = _tokenService.CreateAccessToken(user, roles);
 
-        // Refresh token üret ve sakla
         var refreshToken = _tokenService.GenerateRefreshToken();
         user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7); // appsettings'ten de alabiliriz
+        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
         await _userManager.UpdateAsync(user);
 
         return new LoginResponseDto
