@@ -24,7 +24,7 @@ public class TokenService : ITokenService
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new(JwtRegisteredClaimNames.Sub, user.Id),
+            new(ClaimTypes.NameIdentifier, user.Id),
             new(JwtRegisteredClaimNames.Email, user.Email!),
             new("fullName", $"{user.Name} {user.Surname}".Trim()),
         };
@@ -77,7 +77,7 @@ public class TokenService : ITokenService
         if (securityToken is not JwtSecurityToken jwtSecurityToken ||
             !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
         {
-            throw new SecurityTokenException("Geçersiz token.");
+            throw new SecurityTokenException("Invalid token.");
         }
 
         return principal;

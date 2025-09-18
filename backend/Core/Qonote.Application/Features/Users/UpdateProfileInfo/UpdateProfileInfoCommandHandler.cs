@@ -4,38 +4,44 @@ using Qonote.Core.Application.Abstractions.Security;
 using Qonote.Core.Application.Exceptions;
 using Qonote.Core.Domain.Identity;
 
-namespace Qonote.Core.Application.Features.Auth.Logout;
+namespace Qonote.Core.Application.Features.Users.UpdateProfileInfo;
 
-public sealed class LogoutCommandHandler : IRequestHandler<LogoutCommand, Unit>
+public sealed class UpdateProfileInfoCommandHandler : IRequestHandler<UpdateProfileInfoCommand, Unit>
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ICurrentUserService _currentUserService;
 
-    public LogoutCommandHandler(UserManager<ApplicationUser> userManager, ICurrentUserService currentUserService)
+    public UpdateProfileInfoCommandHandler(UserManager<ApplicationUser> userManager, ICurrentUserService currentUserService)
     {
         _userManager = userManager;
         _currentUserService = currentUserService;
     }
 
-    public async Task<Unit> Handle(LogoutCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(UpdateProfileInfoCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserId;
         if (string.IsNullOrWhiteSpace(userId))
         {
-            // This should not happen if the endpoint is protected with [Authorize]
             throw new UnauthorizedAccessException();
         }
 
         var user = await _userManager.FindByIdAsync(userId);
         if (user is null)
         {
-            // This is highly unlikely if the token is valid, but as a safeguard:
             throw new NotFoundException("User not found.");
         }
 
-        user.RefreshToken = null;
-        user.RefreshTokenExpiryTime = null;
-        await _userManager.UpdateAsync(user);
+        user.Name = request.Name;
+        user.Surname = request.Surname;
+
+        var result = await _userManager.UpdateAsync(user);
+
+        if (!result.Succeeded)
+        {
+            //TODO: Map these to a ValidationException like in Register
+
+            throw new Exception("Failed to update user profile.");
+        }
 
         return Unit.Value;
     }

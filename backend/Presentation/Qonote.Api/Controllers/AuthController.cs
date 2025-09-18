@@ -45,13 +45,7 @@ public class AuthController : ControllerBase
     [HttpPost("logout")]
     public async Task<IActionResult> Logout()
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        if (string.IsNullOrWhiteSpace(userId))
-        {
-            return Unauthorized();
-        }
-
-        await _mediator.Send(new LogoutCommand { UserId = userId });
+        await _mediator.Send(new LogoutCommand());
         return NoContent();
     }
 }

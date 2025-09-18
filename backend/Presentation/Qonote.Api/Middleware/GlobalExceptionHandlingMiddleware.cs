@@ -22,7 +22,7 @@ public class GlobalExceptionHandlingMiddleware : IMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Bir hata oluştu: {Message}", ex.Message);
+            _logger.LogError(ex, "An unhandled exception has occurred: {Message}", ex.Message);
             await HandleExceptionAsync(context, ex);
         }
     }
@@ -51,7 +51,7 @@ public class GlobalExceptionHandlingMiddleware : IMiddleware
 
             default:
                 statusCode = HttpStatusCode.InternalServerError; // 500
-                apiError = new ApiError("Sunucuda beklenmedik bir hata oluştu.", errorCode: "internal_server_error");
+                apiError = new ApiError("An unexpected error occurred on the server.", errorCode: "internal_server_error");
                 break;
         }
 
