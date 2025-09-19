@@ -1,11 +1,12 @@
 using MediatR;
-using Microsoft.AspNetCore.Mvc;
-using Qonote.Core.Application.Features.Auth.Register;
-using Qonote.Core.Application.Features.Auth.Login;
-using Qonote.Core.Application.Features.Auth.RefreshToken;
-using Qonote.Core.Application.Features.Auth.Logout;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
+using Qonote.Core.Application.Features.Auth.ExternalLogin;
+using Qonote.Core.Application.Features.Auth.GoogleLoginUrl;
+using Qonote.Core.Application.Features.Auth.Login;
+using Qonote.Core.Application.Features.Auth.Logout;
+using Qonote.Core.Application.Features.Auth.RefreshToken;
+using Qonote.Core.Application.Features.Auth.Register;
 
 namespace Qonote.Presentation.Api.Controllers;
 
@@ -47,5 +48,19 @@ public class AuthController : ControllerBase
     {
         await _mediator.Send(new LogoutCommand());
         return NoContent();
+    }
+
+    [HttpGet("google-login-url")]
+    public async Task<IActionResult> GetGoogleLoginUrl([FromQuery] GoogleLoginUrlQuery query)
+    {
+        var result = await _mediator.Send(query);
+        return Ok(result);
+    }
+
+    [HttpPost("external-login")]
+    public async Task<IActionResult> ExternalLogin(ExternalLoginCommand command)
+    {
+        var result = await _mediator.Send(command);
+        return Ok(result);
     }
 }
