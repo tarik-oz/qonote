@@ -12,5 +12,15 @@ services:
     volumes:
       - qonote_postgres_data:/var/lib/postgresql/data/
 
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    container_name: qonote-azurite
+    restart: always
+    ports:
+      - "10000:10000" # Blob Service
+    volumes:
+      - qonote_azurite_data:/data
+
 volumes:
   qonote_postgres_data:
+  qonote_azurite_data:

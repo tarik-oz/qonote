@@ -9,12 +9,12 @@ namespace Qonote.Infrastructure.Security.External.Google;
 public class GoogleAuthService : IGoogleAuthService
 {
     private readonly GoogleSettings _googleSettings;
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly HttpClient _httpClient;
 
-    public GoogleAuthService(IOptions<GoogleSettings> googleSettings, IHttpClientFactory httpClientFactory)
+    public GoogleAuthService(IOptions<GoogleSettings> googleSettings, HttpClient httpClient)
     {
         _googleSettings = googleSettings.Value;
-        _httpClientFactory = httpClientFactory;
+        _httpClient = httpClient;
     }
 
     public string GenerateAuthUrl(string redirectUri)
@@ -35,7 +35,6 @@ public class GoogleAuthService : IGoogleAuthService
 
     public async Task<ExternalLoginUserDto> ExchangeCodeForUserInfoAsync(string code, string redirectUri)
     {
-        var client = _httpClientFactory.CreateClient();
         var tokenRequest = new Dictionary<string, string>
         {
             { "code", code },
@@ -45,7 +44,7 @@ public class GoogleAuthService : IGoogleAuthService
             { "grant_type", "authorization_code" }
         };
 
-        var response = await client.PostAsync("https://oauth2.googleapis.com/token", new FormUrlEncodedContent(tokenRequest));
+        var response = await _httpClient.PostAsync("https://oauth2.googleapis.com/token", new FormUrlEncodedContent(tokenRequest));
 
         if (!response.IsSuccessStatusCode)
         {
