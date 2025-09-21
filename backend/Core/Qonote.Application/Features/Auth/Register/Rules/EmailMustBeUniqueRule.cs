@@ -1,10 +1,9 @@
 using Microsoft.AspNetCore.Identity;
 using Qonote.Core.Application.Abstractions.Rules;
 using Qonote.Core.Application.Abstractions.Rules.Models;
-using Qonote.Core.Application.Features.Auth.Register;
 using Qonote.Core.Domain.Identity;
 
-namespace Qonote.Core.Application.Features.Auth._Rules;
+namespace Qonote.Core.Application.Features.Auth.Register.Rules;
 
 public class EmailMustBeUniqueRule : IBusinessRule<RegisterUserCommand>
 {

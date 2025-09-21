@@ -3,8 +3,10 @@ using AutoMapper;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
-using Qonote.Core.Application.Behaviors;
+using Qonote.Core.Application.Abstractions.Factories;
 using Qonote.Core.Application.Abstractions.Rules;
+using Qonote.Core.Application.Behaviors;
+using Qonote.Core.Application.Factories;
 
 namespace Qonote.Core.Application;
 
@@ -28,6 +30,8 @@ public static class ServiceRegistration
         {
             services.AddTransient(reg.Service, reg.Implementation);
         }
+
+        services.AddScoped<ILoginResponseFactory, LoginResponseFactory>();
 
         services.AddMediatR(cfg =>
         {

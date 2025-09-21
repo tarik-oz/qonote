@@ -1,7 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Qonote.Core.Application.Abstractions.Security;
-using Qonote.Core.Application.Exceptions;
 using Qonote.Core.Domain.Identity;
 
 namespace Qonote.Core.Application.Features.Auth.Logout;
@@ -19,21 +18,10 @@ public sealed class LogoutCommandHandler : IRequestHandler<LogoutCommand, Unit>
 
     public async Task<Unit> Handle(LogoutCommand request, CancellationToken cancellationToken)
     {
-        var userId = _currentUserService.UserId;
-        if (string.IsNullOrWhiteSpace(userId))
-        {
-            // This should not happen if the endpoint is protected with [Authorize]
-            throw new UnauthorizedAccessException();
-        }
+        // The UserMustExistRule is now handled by the BusinessRulesBehavior.
+        var user = await _userManager.FindByIdAsync(_currentUserService.UserId!);
 
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user is null)
-        {
-            // This is highly unlikely if the token is valid, but as a safeguard:
-            throw new NotFoundException("User not found.");
-        }
-
-        user.RefreshToken = null;
+        user!.RefreshToken = null;
         user.RefreshTokenExpiryTime = null;
         await _userManager.UpdateAsync(user);
 

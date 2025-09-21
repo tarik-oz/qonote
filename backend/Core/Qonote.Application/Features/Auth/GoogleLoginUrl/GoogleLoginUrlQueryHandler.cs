@@ -1,5 +1,5 @@
 using MediatR;
-using Qonote.Core.Application.Abstractions.Security;
+using Qonote.Core.Application.Abstractions.Authentication;
 
 namespace Qonote.Core.Application.Features.Auth.GoogleLoginUrl;
 

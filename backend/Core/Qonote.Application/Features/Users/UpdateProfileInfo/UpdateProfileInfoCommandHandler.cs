@@ -1,3 +1,4 @@
+using AutoMapper;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Qonote.Core.Application.Abstractions.Security;
@@ -10,37 +11,28 @@ public sealed class UpdateProfileInfoCommandHandler : IRequestHandler<UpdateProf
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IMapper _mapper;
 
-    public UpdateProfileInfoCommandHandler(UserManager<ApplicationUser> userManager, ICurrentUserService currentUserService)
+    public UpdateProfileInfoCommandHandler(UserManager<ApplicationUser> userManager, ICurrentUserService currentUserService, IMapper mapper)
     {
         _userManager = userManager;
         _currentUserService = currentUserService;
+        _mapper = mapper;
     }
 
     public async Task<Unit> Handle(UpdateProfileInfoCommand request, CancellationToken cancellationToken)
     {
-        var userId = _currentUserService.UserId;
-        if (string.IsNullOrWhiteSpace(userId))
-        {
-            throw new UnauthorizedAccessException();
-        }
+        // The UserMustExistRule is handled by the BusinessRulesBehavior.
+        var user = await _userManager.FindByIdAsync(_currentUserService.UserId!);
 
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user is null)
-        {
-            throw new NotFoundException("User not found.");
-        }
+        // Map properties from the command onto the existing user entity
+        _mapper.Map(request, user!);
 
-        user.Name = request.Name;
-        user.Surname = request.Surname;
-
-        var result = await _userManager.UpdateAsync(user);
+        var result = await _userManager.UpdateAsync(user!);
 
         if (!result.Succeeded)
         {
-            //TODO: Map these to a ValidationException like in Register
-
-            throw new Exception("Failed to update user profile.");
+            throw new ValidationException(result.Errors.Select(e => new FluentValidation.Results.ValidationFailure(e.Code, e.Description)));
         }
 
         return Unit.Value;

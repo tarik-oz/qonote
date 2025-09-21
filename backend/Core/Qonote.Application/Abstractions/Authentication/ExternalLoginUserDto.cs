@@ -1,4 +1,4 @@
-namespace Qonote.Core.Application.Abstractions.Security;
+namespace Qonote.Core.Application.Abstractions.Authentication;
 
 public class ExternalLoginUserDto
 {

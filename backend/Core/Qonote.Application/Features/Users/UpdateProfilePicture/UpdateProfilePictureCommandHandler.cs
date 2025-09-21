@@ -26,32 +26,24 @@ public sealed class UpdateProfilePictureCommandHandler : IRequestHandler<UpdateP
 
     public async Task<string> Handle(UpdateProfilePictureCommand request, CancellationToken cancellationToken)
     {
-        var userId = _currentUserService.UserId;
-        if (string.IsNullOrWhiteSpace(userId))
-            throw new UnauthorizedAccessException();
+        // The UserMustExistRule is now handled by the BusinessRulesBehavior.
+        var user = await _userManager.FindByIdAsync(_currentUserService.UserId!);
 
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user is null)
-            throw new NotFoundException("User not found.");
-
-        // Delete the old profile picture if it exists
-        if (!string.IsNullOrWhiteSpace(user.ProfileImageUrl))
+        if (!string.IsNullOrWhiteSpace(user!.ProfileImageUrl))
         {
             await _fileStorageService.DeleteAsync(user.ProfileImageUrl, ProfilePicturesContainer);
         }
 
-        // Generate a consistent file name for the user
-        var fileName = userId + Path.GetExtension(request.ProfilePicture.FileName);
-
-        // Upload the new profile picture
+        var fileName = user.Id + Path.GetExtension(request.ProfilePicture.FileName);
         var newImageUrl = await _fileStorageService.UploadAsync(request.ProfilePicture, ProfilePicturesContainer, fileName);
 
-        // Update the user's profile image URL in the database
         user.ProfileImageUrl = newImageUrl;
         var result = await _userManager.UpdateAsync(user);
 
         if (!result.Succeeded)
-            throw new Exception("Failed to update user profile picture URL.");
+        {
+            throw new ValidationException(result.Errors.Select(e => new FluentValidation.Results.ValidationFailure(e.Code, e.Description)));
+        }
 
         return newImageUrl;
     }

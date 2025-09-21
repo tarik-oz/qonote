@@ -1,6 +1,8 @@
+using AutoMapper;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
-using Qonote.Core.Application.Abstractions.Security;
+using Qonote.Core.Application.Abstractions.Authentication;
+using Qonote.Core.Application.Abstractions.Factories;
 using Qonote.Core.Application.Abstractions.Storage;
 using Qonote.Core.Application.Exceptions;
 using Qonote.Core.Application.Features.Auth._Shared;
@@ -11,23 +13,26 @@ namespace Qonote.Core.Application.Features.Auth.ExternalLogin;
 public sealed class ExternalLoginCommandHandler : IRequestHandler<ExternalLoginCommand, LoginResponseDto>
 {
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly ITokenService _tokenService;
+    private readonly ILoginResponseFactory _loginResponseFactory;
     private readonly IGoogleAuthService _googleAuthService;
     private readonly IFileStorageService _fileStorageService;
     private readonly HttpClient _httpClient;
+    private readonly IMapper _mapper;
 
     public ExternalLoginCommandHandler(
         UserManager<ApplicationUser> userManager,
-        ITokenService tokenService,
+        ILoginResponseFactory loginResponseFactory,
         IGoogleAuthService googleAuthService,
         IFileStorageService fileStorageService,
-        HttpClient httpClient) // Correctly inject HttpClient
+        HttpClient httpClient,
+        IMapper mapper)
     {
         _userManager = userManager;
-        _tokenService = tokenService;
+        _loginResponseFactory = loginResponseFactory;
         _googleAuthService = googleAuthService;
         _fileStorageService = fileStorageService;
         _httpClient = httpClient;
+        _mapper = mapper;
     }
 
     public async Task<LoginResponseDto> Handle(ExternalLoginCommand request, CancellationToken cancellationToken)
@@ -43,21 +48,13 @@ public sealed class ExternalLoginCommandHandler : IRequestHandler<ExternalLoginC
         var user = await _userManager.FindByEmailAsync(userInfo.Email);
         if (user is null)
         {
-            // User doesn't exist, create a new one
-            var newUser = new ApplicationUser
-            {
-                Email = userInfo.Email,
-                UserName = userInfo.Email,
-                Name = userInfo.FirstName ?? string.Empty,
-                Surname = userInfo.LastName ?? string.Empty,
-                EmailConfirmed = true
-            };
+            var newUser = _mapper.Map<ApplicationUser>(userInfo);
+            newUser.EmailConfirmed = true;
 
             var result = await _userManager.CreateAsync(newUser);
             if (!result.Succeeded)
                 throw new ValidationException(result.Errors.Select(e => new FluentValidation.Results.ValidationFailure(e.Code, e.Description)));
 
-            // After user is created, they have an ID. Now, download and upload their profile picture.
             if (!string.IsNullOrWhiteSpace(userInfo.ProfilePictureUrl))
             {
                 try
@@ -75,7 +72,7 @@ public sealed class ExternalLoginCommandHandler : IRequestHandler<ExternalLoginC
                 }
                 catch (Exception ex)
                 {
-                    // Log the exception (ex) but don't fail the whole registration process if image download fails.
+                    // Log the exception (ex) but don't fail the registration process if image download fails.
                 }
             }
 
@@ -83,21 +80,6 @@ public sealed class ExternalLoginCommandHandler : IRequestHandler<ExternalLoginC
             user = newUser;
         }
 
-        // This part now correctly executes for both existing and newly created users.
-        var roles = await _userManager.GetRolesAsync(user);
-        var (accessToken, accessExpiry) = _tokenService.CreateAccessToken(user, roles);
-        var refreshToken = _tokenService.GenerateRefreshToken();
-
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-        await _userManager.UpdateAsync(user);
-
-        return new LoginResponseDto
-        {
-            AccessToken = accessToken,
-            AccessTokenExpiresAt = accessExpiry,
-            RefreshToken = refreshToken,
-            RefreshTokenExpiresAt = user.RefreshTokenExpiryTime!.Value
-        };
+        return await _loginResponseFactory.CreateAsync(user);
     }
 }

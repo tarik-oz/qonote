@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Google.Apis.Auth;
 using Microsoft.Extensions.Options;
-using Qonote.Core.Application.Abstractions.Security;
+using Qonote.Core.Application.Abstractions.Authentication;
 using Qonote.Infrastructure.Infrastructure.Security;
 
 namespace Qonote.Infrastructure.Security.External.Google;
