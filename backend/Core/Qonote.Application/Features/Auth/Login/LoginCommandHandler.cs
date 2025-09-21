@@ -1,7 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Qonote.Core.Application.Abstractions.Factories;
-using Qonote.Core.Application.Exceptions;
 using Qonote.Core.Application.Features.Auth._Shared;
 using Qonote.Core.Domain.Identity;
 
@@ -20,18 +19,10 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoginRes
 
     public async Task<LoginResponseDto> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
+        // All business rules (user existence, password validity, email confirmation) 
+        // are handled by the BusinessRulesBehavior.
         var user = await _userManager.FindByEmailAsync(request.Email);
-        if (user is null)
-        {
-            throw new ValidationException(new[] { new FluentValidation.Results.ValidationFailure("Auth.Login", "Invalid email or password.") });
-        }
 
-        var passwordValid = await _userManager.CheckPasswordAsync(user, request.Password);
-        if (!passwordValid)
-        {
-            throw new ValidationException(new[] { new FluentValidation.Results.ValidationFailure("Auth.Login", "Invalid email or password.") });
-        }
-
-        return await _loginResponseFactory.CreateAsync(user);
+        return await _loginResponseFactory.CreateAsync(user!);
     }
 }

@@ -5,7 +5,7 @@ using Qonote.Core.Application.Exceptions;
 namespace Qonote.Core.Application.Behaviors;
 
 public class BusinessRulesBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
-    where TRequest : IRequest<TResponse>
+    where TRequest : notnull
 {
     private readonly IEnumerable<IBusinessRule<TRequest>> _rules;
 
@@ -13,14 +13,19 @@ public class BusinessRulesBehavior<TRequest, TResponse> : IPipelineBehavior<TReq
 
     public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
-        if (_rules.Any())
+        if (!_rules.Any())
         {
-            var results = await Task.WhenAll(_rules.Select(r => r.CheckAsync(request, cancellationToken)));
-            var violations = results.SelectMany(v => v).Where(v => v is not null).ToList();
+            return await next();
+        }
 
-            if (violations.Count != 0)
+        // Run rules sequentially based on their Order property
+        foreach (var rule in _rules.OrderBy(r => r.Order))
+        {
+            var violations = await rule.CheckAsync(request, cancellationToken);
+            if (violations.Any())
             {
-                throw new BusinessRuleException(violations!);
+                // If a rule fails, throw immediately and stop processing further rules.
+                throw new BusinessRuleException(violations);
             }
         }
 

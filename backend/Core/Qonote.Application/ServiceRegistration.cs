@@ -7,6 +7,8 @@ using Qonote.Core.Application.Abstractions.Factories;
 using Qonote.Core.Application.Abstractions.Rules;
 using Qonote.Core.Application.Behaviors;
 using Qonote.Core.Application.Factories;
+using Qonote.Core.Application.Features.Auth._Rules;
+using Qonote.Core.Application.Features.Users._Rules;
 
 namespace Qonote.Core.Application;
 
@@ -20,16 +22,22 @@ public static class ServiceRegistration
 
         // Register all IBusinessRule<TRequest> implementations via reflection
         var assembly = Assembly.GetExecutingAssembly();
-        var ruleRegistrations = assembly.DefinedTypes
-            .Where(t => !t.IsAbstract && !t.IsInterface)
+
+        // Register non-generic rules automatically
+        var specificRuleRegistrations = assembly.DefinedTypes
+            .Where(t => !t.IsAbstract && !t.IsInterface && !t.IsGenericType) // Exclude generic types
             .SelectMany(t => t.ImplementedInterfaces
                 .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IBusinessRule<>))
                 .Select(i => new { Service = i, Implementation = t.AsType() }));
 
-        foreach (var reg in ruleRegistrations)
+        foreach (var reg in specificRuleRegistrations)
         {
             services.AddTransient(reg.Service, reg.Implementation);
         }
+
+        // Register generic rules manually
+        services.AddTransient(typeof(IBusinessRule<>), typeof(UserMustExistRule<>));
+        services.AddTransient(typeof(IBusinessRule<>), typeof(UserMustExistByEmailRule<>));
 
         services.AddScoped<ILoginResponseFactory, LoginResponseFactory>();
 

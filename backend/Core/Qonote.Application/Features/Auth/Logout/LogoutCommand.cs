@@ -1,9 +1,9 @@
 using MediatR;
+using Qonote.Core.Application.Abstractions.Requests;
 
 namespace Qonote.Core.Application.Features.Auth.Logout;
 
-public sealed class LogoutCommand : IRequest<Unit>
+public sealed class LogoutCommand : IRequest<Unit>, IAuthenticatedRequest
 {
-    // This command is parameterless because the user ID will be retrieved from the authenticated user's claims.
 }
 

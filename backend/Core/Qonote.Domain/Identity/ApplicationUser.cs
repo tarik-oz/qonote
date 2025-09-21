@@ -12,6 +12,10 @@ public class ApplicationUser : IdentityUser, IEntityBase<string>
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpiryTime { get; set; }
 
+    // Email Confirmation
+    public string? EmailConfirmationCode { get; set; }
+    public DateTime? EmailConfirmationCodeExpiry { get; set; }
+
     // Properties from IEntityBase
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }

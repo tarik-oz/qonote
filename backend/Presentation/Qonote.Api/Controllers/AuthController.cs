@@ -1,12 +1,14 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Qonote.Core.Application.Features.Auth.ConfirmEmail;
 using Qonote.Core.Application.Features.Auth.ExternalLogin;
 using Qonote.Core.Application.Features.Auth.GoogleLoginUrl;
 using Qonote.Core.Application.Features.Auth.Login;
 using Qonote.Core.Application.Features.Auth.Logout;
 using Qonote.Core.Application.Features.Auth.RefreshToken;
 using Qonote.Core.Application.Features.Auth.Register;
+using Qonote.Core.Application.Features.Auth.SendConfirmationEmail;
 
 namespace Qonote.Presentation.Api.Controllers;
 
@@ -26,6 +28,20 @@ public class AuthController : ControllerBase
     {
         var result = await _mediator.Send(command);
         return Ok(result);
+    }
+
+    [HttpPost("confirm-email")]
+    public async Task<IActionResult> ConfirmEmail(ConfirmEmailCommand command)
+    {
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
+
+    [HttpPost("send-confirmation-email")]
+    public async Task<IActionResult> SendConfirmationEmail(SendConfirmationEmailCommand command)
+    {
+        await _mediator.Send(command);
+        return Ok();
     }
 
     [HttpPost("login")]
