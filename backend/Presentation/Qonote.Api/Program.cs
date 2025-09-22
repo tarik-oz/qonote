@@ -7,6 +7,8 @@ using Qonote.Infrastructure.Infrastructure;
 using Qonote.Infrastructure.Persistence;
 using Qonote.Presentation.Api.Middleware;
 using Swashbuckle.AspNetCore.Filters;
+using Microsoft.AspNetCore.Mvc;
+using Qonote.Presentation.Api.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +17,28 @@ builder.Services.AddPersistenceServices(builder.Configuration);
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(ms => ms.Value != null && ms.Value.Errors.Count > 0)
+                .GroupBy(kvp => kvp.Key)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.SelectMany(kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage)).ToArray()
+                );
+
+            var apiError = new ApiError(
+                message: "Validation failed.",
+                errors: errors,
+                errorCode: "validation_failure"
+            );
+
+            return new BadRequestObjectResult(apiError);
+        };
+    });
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddTransient<GlobalExceptionHandlingMiddleware>();
 builder.Services.AddEndpointsApiExplorer();

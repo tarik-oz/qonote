@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Qonote.Core.Application.Abstractions.Data;
-using Qonote.Core.Domain.Identity;
 using Qonote.Infrastructure.Persistence.Context;
 using Qonote.Infrastructure.Persistence.Repositories;
 
@@ -19,18 +18,6 @@ public static class ServiceRegistration
         services.AddScoped(typeof(IWriteRepository<,>), typeof(WriteRepository<,>));
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
-
-        services.AddIdentityCore<ApplicationUser>(options =>
-            {
-                options.Password.RequireDigit = false;
-                options.Password.RequiredLength = 4;
-                options.Password.RequireLowercase = false;
-                options.Password.RequireUppercase = false;
-                options.Password.RequireNonAlphanumeric = false;
-                options.SignIn.RequireConfirmedEmail = false;
-            })
-            .AddRoles<ApplicationRole>()
-            .AddEntityFrameworkStores<ApplicationDbContext>();
 
         return services;
     }

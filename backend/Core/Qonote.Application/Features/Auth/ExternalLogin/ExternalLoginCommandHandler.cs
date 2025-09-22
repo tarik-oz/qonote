@@ -70,7 +70,7 @@ public sealed class ExternalLoginCommandHandler : IRequestHandler<ExternalLoginC
                         await _userManager.UpdateAsync(newUser);
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     // Log the exception (ex) but don't fail the registration process if image download fails.
                 }

@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Core\Qonote.Application\Qonote.Application.csproj" />
+    <ProjectReference Include="..\Qonote.Persistence\Qonote.Persistence.csproj" />
   </ItemGroup>
 
   <ItemGroup>
