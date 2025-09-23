@@ -42,8 +42,8 @@ public sealed class ExternalLoginCommandHandler : IRequestHandler<ExternalLoginC
             throw new ValidationException(new[] { new FluentValidation.Results.ValidationFailure("Provider", "Only Google provider is supported.") });
         }
 
-        const string redirectUri = "https://developers.google.com/oauthplayground";
-        var userInfo = await _googleAuthService.ExchangeCodeForUserInfoAsync(request.Code, redirectUri);
+        // Use configured RedirectUri from settings when not provided explicitly
+        var userInfo = await _googleAuthService.ExchangeCodeForUserInfoAsync(request.Code, redirectUri: string.Empty);
 
         var user = await _userManager.FindByEmailAsync(userInfo.Email);
         if (user is null)

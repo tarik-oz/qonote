@@ -14,7 +14,8 @@ public sealed class GoogleLoginUrlQueryHandler : IRequestHandler<GoogleLoginUrlQ
 
     public Task<GoogleLoginUrlResponseDto> Handle(GoogleLoginUrlQuery request, CancellationToken cancellationToken)
     {
-        var url = _googleAuthService.GenerateAuthUrl(request.RedirectUri);
+        // Always use configured RedirectUri; passing empty triggers fallback in the service
+        var url = _googleAuthService.GenerateAuthUrl(string.Empty);
 
         var response = new GoogleLoginUrlResponseDto
         {

@@ -12,6 +12,11 @@ public class SectionConfiguration : IEntityTypeConfiguration<Section>
             .IsRequired()
             .HasMaxLength(300);
 
+        // Store enum as string
+        builder.Property(s => s.Type)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
         // --- Relationships ---
         builder.HasOne(s => s.Note)
             .WithMany(n => n.Sections)

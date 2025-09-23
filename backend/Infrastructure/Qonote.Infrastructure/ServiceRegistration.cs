@@ -13,6 +13,8 @@ using Qonote.Infrastructure.Persistence.Context;
 using Qonote.Infrastructure.Security;
 using Qonote.Infrastructure.Security.External.Google;
 using Qonote.Infrastructure.Storage;
+using Qonote.Infrastructure.YouTube;
+using Qonote.Core.Application.Abstractions.YouTube;
 
 namespace Qonote.Infrastructure.Infrastructure;
 
@@ -23,6 +25,7 @@ public static class ServiceRegistration
         services.Configure<TokenSettings>(configuration.GetSection("TokenSettings"));
         services.Configure<GoogleSettings>(configuration.GetSection("GoogleSettings"));
         services.Configure<BlobStorageSettings>(configuration.GetSection("BlobStorage"));
+        services.Configure<YouTubeSettings>(configuration.GetSection("YouTube"));
         services.AddOptions<EmailSettings>()
             .Bind(configuration.GetSection("EmailSettings"))
             .Validate(e => e.DisableDelivery ||
@@ -35,6 +38,7 @@ public static class ServiceRegistration
         services.AddTransient<IGoogleAuthService, GoogleAuthService>();
         services.AddScoped<IFileStorageService, AzureBlobStorageService>();
         services.AddTransient<IEmailService, AzureEmailService>();
+        services.AddHttpClient<IYouTubeMetadataService, YouTubeMetadataService>();
 
         services.AddIdentityCore<ApplicationUser>(options =>
             {

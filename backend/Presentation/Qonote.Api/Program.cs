@@ -9,6 +9,7 @@ using Qonote.Presentation.Api.Middleware;
 using Swashbuckle.AspNetCore.Filters;
 using Microsoft.AspNetCore.Mvc;
 using Qonote.Presentation.Api.Contracts;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,10 @@ builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
 builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    })
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>

@@ -49,6 +49,29 @@ public class GlobalExceptionHandlingMiddleware : IMiddleware
                 apiError = new ApiError(notFoundEx.Message, errorCode: "resource_not_found");
                 break;
 
+            case ConflictException conflictEx:
+                statusCode = HttpStatusCode.Conflict; // 409
+                apiError = new ApiError(conflictEx.Message, conflictEx.Errors, "resource_conflict");
+                break;
+
+            case ExternalServiceException extEx:
+                statusCode = HttpStatusCode.BadGateway; // 502
+                var extras = new Dictionary<string, string[]>();
+                extras["provider"] = new[] { extEx.Provider };
+                if (extEx.StatusCode.HasValue)
+                {
+                    extras["upstreamStatus"] = new[] { extEx.StatusCode.Value.ToString() };
+                }
+                if (extEx.Errors is not null)
+                {
+                    foreach (var kvp in extEx.Errors)
+                    {
+                        extras[kvp.Key] = kvp.Value;
+                    }
+                }
+                apiError = new ApiError(extEx.Message, extras, "external_service_error");
+                break;
+
             default:
                 statusCode = HttpStatusCode.InternalServerError; // 500
                 apiError = new ApiError("An unexpected error occurred on the server.", errorCode: "internal_server_error");

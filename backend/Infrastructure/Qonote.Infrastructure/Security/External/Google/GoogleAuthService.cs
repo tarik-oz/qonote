@@ -20,11 +20,16 @@ public class GoogleAuthService : IGoogleAuthService
     public string GenerateAuthUrl(string redirectUri)
     {
         const string googleAuthUrl = "https://accounts.google.com/o/oauth2/v2/auth";
+        var effectiveRedirectUri = string.IsNullOrWhiteSpace(redirectUri) ? _googleSettings.RedirectUri : redirectUri;
+        if (string.IsNullOrWhiteSpace(effectiveRedirectUri))
+        {
+            throw new InvalidOperationException("Google RedirectUri is not configured. Set GoogleSettings:RedirectUri or pass a redirectUri parameter.");
+        }
 
         var parameters = new Dictionary<string, string?>
         {
             { "client_id", _googleSettings.ClientId },
-            { "redirect_uri", redirectUri },
+            { "redirect_uri", effectiveRedirectUri },
             { "response_type", "code" },
             { "scope", "openid email profile" },
             { "access_type", "offline" }
@@ -35,12 +40,17 @@ public class GoogleAuthService : IGoogleAuthService
 
     public async Task<ExternalLoginUserDto> ExchangeCodeForUserInfoAsync(string code, string redirectUri)
     {
+        var effectiveRedirectUri = string.IsNullOrWhiteSpace(redirectUri) ? _googleSettings.RedirectUri : redirectUri;
+        if (string.IsNullOrWhiteSpace(effectiveRedirectUri))
+        {
+            throw new InvalidOperationException("Google RedirectUri is not configured. Set GoogleSettings:RedirectUri or pass a redirectUri parameter.");
+        }
         var tokenRequest = new Dictionary<string, string>
         {
             { "code", code },
             { "client_id", _googleSettings.ClientId },
             { "client_secret", _googleSettings.ClientSecret },
-            { "redirect_uri", redirectUri },
+            { "redirect_uri", effectiveRedirectUri },
             { "grant_type", "authorization_code" }
         };
 

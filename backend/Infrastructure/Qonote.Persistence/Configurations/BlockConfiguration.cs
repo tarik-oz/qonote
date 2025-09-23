@@ -10,6 +10,11 @@ public class BlockConfiguration : IEntityTypeConfiguration<Block>
     {
         builder.Property(b => b.Content).IsRequired();
 
+        // Store enum as string
+        builder.Property(b => b.Type)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
         // --- Relationships ---
         builder.HasOne(b => b.Section)
             .WithMany(s => s.Blocks)
