@@ -1,5 +1,4 @@
 using System.Reflection;
-using AutoMapper;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -40,6 +39,7 @@ public static class ServiceRegistration
         services.AddTransient(typeof(IBusinessRule<>), typeof(UserMustExistByEmailRule<>));
 
         services.AddScoped<ILoginResponseFactory, LoginResponseFactory>();
+        services.AddScoped<INoteFactory, NoteFactory>();
 
         services.AddMediatR(cfg =>
         {
