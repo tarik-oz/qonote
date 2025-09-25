@@ -20,6 +20,7 @@ public class ApplicationUser : IdentityUser, IEntityBase<string>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
     public bool IsDeleted { get; set; } = false;
+    public DateTime? DeletedAt { get; set; }
 
     // Navigation Properties
     public ICollection<NoteGroup> NoteGroups { get; set; } = new List<NoteGroup>();

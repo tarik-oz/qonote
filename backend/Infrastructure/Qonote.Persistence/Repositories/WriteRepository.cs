@@ -28,6 +28,7 @@ public class WriteRepository<T, TKey> : IWriteRepository<T, TKey> where TKey : n
     public void Delete(T entity)
     {
         entity.IsDeleted = true;
+        entity.DeletedAt = DateTime.UtcNow;
         _context.Entry(entity).State = EntityState.Modified;
     }
 }

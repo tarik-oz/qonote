@@ -29,6 +29,10 @@ public class NoteConfiguration : IEntityTypeConfiguration<Note>
             .IsRequired()
             .HasMaxLength(150);
 
+        // Indexes for sidebar queries
+        builder.HasIndex(n => new { n.UserId, n.IsDeleted, n.UpdatedAt });
+        builder.HasIndex(n => new { n.NoteGroupId, n.IsDeleted, n.UpdatedAt });
+
         // --- Relationships ---
         builder.HasOne(n => n.User)
             .WithMany(u => u.Notes)
