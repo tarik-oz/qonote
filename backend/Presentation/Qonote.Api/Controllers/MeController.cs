@@ -23,9 +23,9 @@ public class MeController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> UpdateProfileInfo(UpdateProfileInfoCommand command)
+    public async Task<IActionResult> UpdateProfileInfo(UpdateProfileInfoCommand command, CancellationToken ct)
     {
-        await _mediator.Send(command);
+        await _mediator.Send(command, ct);
         return NoContent();
     }
 
@@ -34,9 +34,9 @@ public class MeController : ControllerBase
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> UpdateProfilePicture([FromForm] UpdateProfilePictureCommand command)
+    public async Task<IActionResult> UpdateProfilePicture([FromForm] UpdateProfilePictureCommand command, CancellationToken ct)
     {
-        var newImageUrl = await _mediator.Send(command);
+        var newImageUrl = await _mediator.Send(command, ct);
         return Ok(new { ProfilePictureUrl = newImageUrl });
     }
 
@@ -44,9 +44,9 @@ public class MeController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordCommand command)
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordCommand command, CancellationToken ct)
     {
-        await _mediator.Send(command);
+        await _mediator.Send(command, ct);
         return NoContent();
     }
 }

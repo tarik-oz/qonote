@@ -21,7 +21,6 @@ public sealed class CreateNoteFromYoutubeUrlCommandHandler : IRequestHandler<Cre
     private readonly IYouTubeMetadataService _youTube;
     private readonly IFileStorageService _fileStorageService;
     private readonly HttpClient _httpClient;
-    private readonly IMapper _mapper;
     private readonly INoteFactory _noteFactory;
     private const string ThumbnailsContainer = "thumbnails";
 
@@ -33,7 +32,6 @@ public sealed class CreateNoteFromYoutubeUrlCommandHandler : IRequestHandler<Cre
         IYouTubeMetadataService youTube,
         IFileStorageService fileStorageService,
         HttpClient httpClient,
-        IMapper mapper,
         INoteFactory noteFactory)
     {
         _noteReadRepository = noteReadRepository;
@@ -43,13 +41,12 @@ public sealed class CreateNoteFromYoutubeUrlCommandHandler : IRequestHandler<Cre
         _youTube = youTube;
         _fileStorageService = fileStorageService;
         _httpClient = httpClient;
-        _mapper = mapper;
         _noteFactory = noteFactory;
     }
 
     public async Task<int> Handle(CreateNoteFromYoutubeUrlCommand request, CancellationToken cancellationToken)
     {
-        var userId = _currentUser.UserId ?? throw new InvalidOperationException("No authenticated user.");
+        var userId = _currentUser.UserId!; // guaranteed by UserMustExistRule
 
         var videoId = YouTubeUrlParser.TryExtractVideoId(request.YoutubeUrl);
         if (videoId is null)
@@ -61,36 +58,11 @@ public sealed class CreateNoteFromYoutubeUrlCommandHandler : IRequestHandler<Cre
         // Per-user title uniqueness and duplicate video are enforced via business rules (pipeline behavior)
         var trimmedCustomTitle = request.CustomTitle?.Trim();
 
-        var meta = await _youTube.GetVideoMetadataAsync(videoId, cancellationToken);
+        // If a rule already fetched metadata, reuse it to avoid duplicate call
+        var meta = request.Metadata ?? await _youTube.GetVideoMetadataAsync(videoId, cancellationToken);
 
-        // Map core fields from YouTube metadata using AutoMapper, then fill remaining fields
-        var note = _mapper.Map<Note>(meta);
-        note.UserId = userId;
-        note.YoutubeUrl = request.YoutubeUrl;
-        note.CustomTitle = string.IsNullOrWhiteSpace(request.CustomTitle) ? meta.Title : request.CustomTitle;
-        note.Sections = new List<Section>();
-
-        // If CustomTitle was not provided, we derived it from video title; ensure uniqueness per-user now
-        if (string.IsNullOrWhiteSpace(trimmedCustomTitle))
-        {
-            var derivedTitle = note.CustomTitle.Trim();
-            var conflictOnDerived = await _noteReadRepository.GetAllAsync(
-                n => n.UserId == userId && n.CustomTitle.ToLower() == derivedTitle.ToLower(),
-                cancellationToken);
-            if (conflictOnDerived.Any())
-            {
-                var exId = conflictOnDerived.First().Id;
-                throw new ConflictException(
-                    "You already have a note with this title.",
-                    new Dictionary<string, string[]>
-                    {
-                        { "field", new[] { "CustomTitle" } },
-                        { "existingNoteId", new[] { exId.ToString() } }
-                    });
-            }
-        }
-
-        note = _noteFactory.CreateFromYouTubeMetadata(meta, userId, request.YoutubeUrl, request.CustomTitle);
+        // Create entity via factory (business rules already validate title uniqueness incl. derived)
+        var note = _noteFactory.CreateFromYouTubeMetadata(meta, userId, request.YoutubeUrl, request.CustomTitle);
 
         await _noteWriteRepository.AddAsync(note, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

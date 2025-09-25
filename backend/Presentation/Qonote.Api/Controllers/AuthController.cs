@@ -29,9 +29,9 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Register(RegisterUserCommand command)
+    public async Task<IActionResult> Register(RegisterUserCommand command, CancellationToken ct)
     {
-        var result = await _mediator.Send(command);
+        var result = await _mediator.Send(command, ct);
         return Ok(result);
     }
 
@@ -39,9 +39,9 @@ public class AuthController : ControllerBase
     [HttpPost("confirm-email")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> ConfirmEmail(ConfirmEmailCommand command)
+    public async Task<IActionResult> ConfirmEmail(ConfirmEmailCommand command, CancellationToken ct)
     {
-        var result = await _mediator.Send(command);
+        var result = await _mediator.Send(command, ct);
         return Ok(result);
     }
 
@@ -49,9 +49,9 @@ public class AuthController : ControllerBase
     [HttpPost("email-confirmations")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> SendConfirmationEmail(SendConfirmationEmailCommand command)
+    public async Task<IActionResult> SendConfirmationEmail(SendConfirmationEmailCommand command, CancellationToken ct)
     {
-        await _mediator.Send(command);
+        await _mediator.Send(command, ct);
         return Ok();
     }
 
@@ -59,9 +59,9 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Login(LoginCommand command)
+    public async Task<IActionResult> Login(LoginCommand command, CancellationToken ct)
     {
-        var result = await _mediator.Send(command);
+        var result = await _mediator.Send(command, ct);
         return Ok(result);
     }
 
@@ -69,9 +69,9 @@ public class AuthController : ControllerBase
     [HttpPost("refresh-token")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> RefreshToken(RefreshTokenCommand command)
+    public async Task<IActionResult> RefreshToken(RefreshTokenCommand command, CancellationToken ct)
     {
-        var result = await _mediator.Send(command);
+        var result = await _mediator.Send(command, ct);
         return Ok(result);
     }
 
@@ -79,18 +79,18 @@ public class AuthController : ControllerBase
     [HttpPost("logout")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> Logout()
+    public async Task<IActionResult> Logout(CancellationToken ct)
     {
-        await _mediator.Send(new LogoutCommand());
+        await _mediator.Send(new LogoutCommand(), ct);
         return NoContent();
     }
 
     [AllowAnonymous]
     [HttpGet("google-login-url")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetGoogleLoginUrl([FromQuery] GoogleLoginUrlQuery query)
+    public async Task<IActionResult> GetGoogleLoginUrl([FromQuery] GoogleLoginUrlQuery query, CancellationToken ct)
     {
-        var result = await _mediator.Send(query);
+        var result = await _mediator.Send(query, ct);
         return Ok(result);
     }
 
@@ -98,18 +98,18 @@ public class AuthController : ControllerBase
     [HttpPost("external-login")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> ExternalLogin(ExternalLoginCommand command)
+    public async Task<IActionResult> ExternalLogin(ExternalLoginCommand command, CancellationToken ct)
     {
-        var result = await _mediator.Send(command);
+        var result = await _mediator.Send(command, ct);
         return Ok(result);
     }
 
     [AllowAnonymous]
     [HttpPost("forgot-password")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> ForgotPassword(ForgotPasswordCommand command)
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordCommand command, CancellationToken ct)
     {
-        await _mediator.Send(command);
+        await _mediator.Send(command, ct);
         // Always return 200 to avoid account enumeration
         return Ok();
     }
@@ -118,9 +118,9 @@ public class AuthController : ControllerBase
     [HttpPost("reset-password")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> ResetPassword(ResetPasswordCommand command)
+    public async Task<IActionResult> ResetPassword(ResetPasswordCommand command, CancellationToken ct)
     {
-        await _mediator.Send(command);
+        await _mediator.Send(command, ct);
         return Ok();
     }
 }
