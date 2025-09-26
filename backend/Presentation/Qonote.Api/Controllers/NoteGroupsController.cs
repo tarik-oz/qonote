@@ -4,6 +4,10 @@ using Microsoft.AspNetCore.Mvc;
 using Qonote.Core.Application.Features.NoteGroups.CreateNoteGroup;
 using Qonote.Core.Application.Features.NoteGroups.ListGroupNotes;
 using Qonote.Core.Application.Features.Sidebar.GetSidebar;
+using Qonote.Core.Application.Features.NoteGroups.DeleteNoteGroup;
+using Qonote.Core.Application.Features.NoteGroups.RenameNoteGroup;
+using Qonote.Core.Application.Features.NoteGroups.Reorder;
+using Qonote.Core.Application.Features.Notes.Reorder;
 
 namespace Qonote.Presentation.Api.Controllers;
 
@@ -30,6 +34,32 @@ public class NoteGroupsController : ControllerBase
     {
         var list = await _mediator.Send(new ListGroupNotesQuery(id, limit, offset), ct);
         return Ok(list);
+    }
+
+    [HttpPatch("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Rename(int id, [FromBody] CreateNoteGroupRequest body, CancellationToken ct)
+    {
+        await _mediator.Send(new RenameNoteGroupCommand(id, body.Title), ct);
+        return NoContent();
+    }
+
+    [HttpPatch("order")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> Reorder([FromBody] List<ReorderItem> items, CancellationToken ct)
+    {
+        await _mediator.Send(new ReorderNoteGroupsCommand(items), ct);
+        return NoContent();
+    }
+
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    {
+        await _mediator.Send(new DeleteNoteGroupCommand(id), ct);
+        return NoContent();
     }
 }
 

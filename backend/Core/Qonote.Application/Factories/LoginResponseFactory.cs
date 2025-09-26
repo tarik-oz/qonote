@@ -21,10 +21,10 @@ public sealed class LoginResponseFactory : ILoginResponseFactory
     {
         var roles = await _userManager.GetRolesAsync(user);
         var (accessToken, accessTokenExpiry) = _tokenService.CreateAccessToken(user, roles);
-        var refreshToken = _tokenService.GenerateRefreshToken();
+        var (refreshToken, refreshTokenExpiry) = _tokenService.CreateRefreshToken();
 
         user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+        user.RefreshTokenExpiryTime = refreshTokenExpiry;
         await _userManager.UpdateAsync(user);
 
         return new LoginResponseDto

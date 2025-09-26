@@ -52,12 +52,14 @@ public class TokenService : ITokenService
         return (tokenString, expiryDate);
     }
 
-    public string GenerateRefreshToken()
+    public (string token, DateTime expiry) CreateRefreshToken()
     {
         var randomNumber = new byte[64];
         using var rng = RandomNumberGenerator.Create();
         rng.GetBytes(randomNumber);
-        return Convert.ToBase64String(randomNumber);
+        var token = Convert.ToBase64String(randomNumber);
+        var expiry = DateTime.UtcNow.AddDays(_tokenSettings.RefreshTokenValidityInDays);
+        return (token, expiry);
     }
 
     public ClaimsPrincipal? GetPrincipalFromExpiredAccessToken(string accessToken)

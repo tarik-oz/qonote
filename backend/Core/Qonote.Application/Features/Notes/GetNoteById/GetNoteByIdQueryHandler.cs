@@ -1,4 +1,5 @@
 using MediatR;
+using AutoMapper;
 using Qonote.Core.Application.Abstractions.Data;
 using Qonote.Core.Application.Abstractions.Security;
 using Qonote.Core.Application.Exceptions;
@@ -12,16 +13,19 @@ public sealed class GetNoteByIdQueryHandler : IRequestHandler<GetNoteByIdQuery, 
     private readonly IReadRepository<Section, int> _sectionReader;
     private readonly IReadRepository<Block, Guid> _blockReader;
     private readonly ICurrentUserService _currentUser;
+    private readonly IMapper _mapper;
 
     public GetNoteByIdQueryHandler(IReadRepository<Note, int> noteReader,
         IReadRepository<Section, int> sectionReader,
         IReadRepository<Block, Guid> blockReader,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        IMapper mapper)
     {
         _noteReader = noteReader;
         _sectionReader = sectionReader;
         _blockReader = blockReader;
         _currentUser = currentUser;
+        _mapper = mapper;
     }
 
     public async Task<NoteDto> Handle(GetNoteByIdQuery request, CancellationToken cancellationToken)
@@ -38,47 +42,33 @@ public sealed class GetNoteByIdQueryHandler : IRequestHandler<GetNoteByIdQuery, 
             throw new NotFoundException($"Note with id {request.Id} not found.");
         }
 
-        var dto = new NoteDto
-        {
-            Id = note.Id,
-            CustomTitle = note.CustomTitle,
-            YoutubeUrl = note.YoutubeUrl,
-            VideoTitle = note.VideoTitle,
-            ThumbnailUrl = note.ThumbnailUrl,
-            ChannelName = note.ChannelName,
-            VideoDuration = note.VideoDuration,
-            IsPublic = note.IsPublic,
-            PublicShareGuid = note.PublicShareGuid,
-            Order = note.Order,
-            Sections = new()
-        };
+        var dto = _mapper.Map<NoteDto>(note);
+        dto.Sections.Clear();
 
         var sections = await _sectionReader.GetAllAsync(s => s.NoteId == note.Id, cancellationToken);
-        sections = sections.OrderBy(s => s.Order).ToList();
+        var orderedSections = sections.OrderBy(s => s.Order).ToList();
 
-        foreach (var s in sections)
+        // Load all blocks for these sections in a single query to avoid N+1
+        var sectionIds = orderedSections.Select(s => s.Id).ToList();
+        var allBlocks = sectionIds.Count == 0
+            ? new List<Block>()
+            : await _blockReader.GetAllAsync(b => sectionIds.Contains(b.SectionId), cancellationToken);
+
+        var blocksBySection = allBlocks
+            .GroupBy(b => b.SectionId)
+            .ToDictionary(g => g.Key, g => g.OrderBy(b => b.Order).ToList());
+
+        foreach (var s in orderedSections)
         {
-            var sDto = new SectionDto
-            {
-                Id = s.Id,
-                Title = s.Title,
-                StartTime = s.StartTime,
-                EndTime = s.EndTime,
-                Order = s.Order,
-                Type = s.Type,
-                Blocks = new()
-            };
+            var sDto = _mapper.Map<SectionDto>(s);
+            sDto.Blocks.Clear();
 
-            var blocks = await _blockReader.GetAllAsync(b => b.SectionId == s.Id, cancellationToken);
-            foreach (var b in blocks.OrderBy(b => b.Order))
+            if (blocksBySection.TryGetValue(s.Id, out var blocks))
             {
-                sDto.Blocks.Add(new BlockDto
+                foreach (var b in blocks)
                 {
-                    Id = b.Id,
-                    Content = b.Content,
-                    Type = b.Type,
-                    Order = b.Order
-                });
+                    sDto.Blocks.Add(_mapper.Map<BlockDto>(b));
+                }
             }
 
             dto.Sections.Add(sDto);

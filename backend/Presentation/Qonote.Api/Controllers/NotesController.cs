@@ -6,6 +6,7 @@ using Qonote.Core.Application.Features.Notes.GetNoteById;
 using Qonote.Core.Application.Features.Notes.AssignGroup;
 using Qonote.Core.Application.Features.Notes.ListFlatNotes;
 using Qonote.Core.Application.Features.Notes.Reorder;
+using Qonote.Core.Application.Features.Notes.UpdateNote;
 
 namespace Qonote.Presentation.Api.Controllers;
 
@@ -58,6 +59,26 @@ public class NotesController : ControllerBase
     public async Task<IActionResult> Reorder([FromBody] List<ReorderItem> items, CancellationToken ct)
     {
         await _mediator.Send(new ReorderNotesCommand(items), ct);
+        return NoContent();
+    }
+
+    [HttpPatch("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateNoteCommand body, CancellationToken ct)
+    {
+        // Ensure route id is used
+        var cmd = body with { Id = id };
+        await _mediator.Send(cmd, ct);
+        return NoContent();
+    }
+
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    {
+        await _mediator.Send(new Core.Application.Features.Notes.DeleteNote.DeleteNoteCommand(id), ct);
         return NoContent();
     }
 }

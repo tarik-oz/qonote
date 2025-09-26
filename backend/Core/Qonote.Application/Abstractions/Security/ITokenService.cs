@@ -7,7 +7,7 @@ public interface ITokenService
 {
     (string token, DateTime expiry) CreateAccessToken(ApplicationUser user, IList<string> roles);
 
-    string GenerateRefreshToken();
+    (string token, DateTime expiry) CreateRefreshToken();
 
     ClaimsPrincipal? GetPrincipalFromExpiredAccessToken(string accessToken);
 }

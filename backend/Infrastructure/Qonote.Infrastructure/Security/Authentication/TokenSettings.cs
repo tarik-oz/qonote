@@ -9,4 +9,6 @@ public class TokenSettings
     public string Secret { get; set; } = string.Empty;
 
     public int TokenValidityInMinutes { get; set; }
+
+    public int RefreshTokenValidityInDays { get; set; }
 }
