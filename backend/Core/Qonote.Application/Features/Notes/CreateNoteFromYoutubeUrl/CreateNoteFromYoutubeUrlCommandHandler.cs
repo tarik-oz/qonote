@@ -7,6 +7,7 @@ using Qonote.Core.Application.Abstractions.YouTube;
 using Qonote.Core.Application.Features.Notes._Shared;
 using Qonote.Core.Application.Abstractions.Storage;
 using Qonote.Core.Application.Exceptions;
+using Qonote.Core.Application.Abstractions.Media;
 using Qonote.Core.Domain.Entities;
 using Qonote.Core.Domain.Enums;
 
@@ -19,8 +20,7 @@ public sealed class CreateNoteFromYoutubeUrlCommandHandler : IRequestHandler<Cre
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
     private readonly IYouTubeMetadataService _youTube;
-    private readonly IFileStorageService _fileStorageService;
-    private readonly HttpClient _httpClient;
+    private readonly IImageService _imageService;
     private readonly INoteFactory _noteFactory;
     private const string ThumbnailsContainer = "thumbnails";
 
@@ -29,9 +29,8 @@ public sealed class CreateNoteFromYoutubeUrlCommandHandler : IRequestHandler<Cre
         IWriteRepository<Note, int> noteWriteRepository,
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUser,
-        IYouTubeMetadataService youTube,
-        IFileStorageService fileStorageService,
-        HttpClient httpClient,
+    IYouTubeMetadataService youTube,
+    IImageService imageService,
         INoteFactory noteFactory)
     {
         _noteReadRepository = noteReadRepository;
@@ -39,8 +38,7 @@ public sealed class CreateNoteFromYoutubeUrlCommandHandler : IRequestHandler<Cre
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _youTube = youTube;
-        _fileStorageService = fileStorageService;
-        _httpClient = httpClient;
+        _imageService = imageService;
         _noteFactory = noteFactory;
     }
 
@@ -70,34 +68,17 @@ public sealed class CreateNoteFromYoutubeUrlCommandHandler : IRequestHandler<Cre
         // Best-effort: upload thumbnail to blob and update note url
         if (!string.IsNullOrWhiteSpace(meta.ThumbnailUrl))
         {
-            try
+            var uploadedUrl = await _imageService.UploadNoteThumbnailFromUrlAsync(meta.ThumbnailUrl, userId, note.Id, cancellationToken);
+            if (!string.IsNullOrWhiteSpace(uploadedUrl))
             {
-                var response = await _httpClient.GetAsync(meta.ThumbnailUrl, cancellationToken);
-                if (response.IsSuccessStatusCode)
-                {
-                    await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-                    var contentType = response.Content.Headers.ContentType?.MediaType ?? "image/jpeg";
-                    var fileName = $"note_{note.Id}.jpg";
-                    var blobUrl = await _fileStorageService.UploadAsync(stream, ThumbnailsContainer, fileName, contentType);
-                    note.ThumbnailUrl = blobUrl;
-                    _noteWriteRepository.Update(note);
-                    await _unitOfWork.SaveChangesAsync(cancellationToken);
-                }
-                else
-                {
-                    // fallback: keep original meta url
-                    note.ThumbnailUrl = meta.ThumbnailUrl;
-                }
+                note.ThumbnailUrl = uploadedUrl!;
+                _noteWriteRepository.Update(note);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
             }
-            catch
+            else
             {
-                // ignore errors; fallback to meta url if not set yet
-                if (string.IsNullOrWhiteSpace(note.ThumbnailUrl))
-                {
-                    note.ThumbnailUrl = meta.ThumbnailUrl;
-                    _noteWriteRepository.Update(note);
-                    await _unitOfWork.SaveChangesAsync(cancellationToken);
-                }
+                // fallback: keep original meta url
+                note.ThumbnailUrl = meta.ThumbnailUrl;
             }
         }
 

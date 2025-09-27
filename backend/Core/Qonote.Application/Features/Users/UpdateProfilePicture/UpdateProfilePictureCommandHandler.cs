@@ -5,6 +5,8 @@ using Qonote.Core.Application.Abstractions.Storage;
 using Qonote.Core.Application.Exceptions;
 using Qonote.Core.Domain.Identity;
 
+using Qonote.Core.Application.Abstractions.Media;
+
 namespace Qonote.Core.Application.Features.Users.UpdateProfilePicture;
 
 public sealed class UpdateProfilePictureCommandHandler : IRequestHandler<UpdateProfilePictureCommand, string>
@@ -12,16 +14,19 @@ public sealed class UpdateProfilePictureCommandHandler : IRequestHandler<UpdateP
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ICurrentUserService _currentUserService;
     private readonly IFileStorageService _fileStorageService;
+    private readonly IImageService _imageService;
     private const string ProfilePicturesContainer = "profile-pictures";
 
     public UpdateProfilePictureCommandHandler(
-        UserManager<ApplicationUser> userManager, 
-        ICurrentUserService currentUserService, 
-        IFileStorageService fileStorageService)
+        UserManager<ApplicationUser> userManager,
+        ICurrentUserService currentUserService,
+        IFileStorageService fileStorageService,
+        IImageService imageService)
     {
         _userManager = userManager;
         _currentUserService = currentUserService;
         _fileStorageService = fileStorageService;
+        _imageService = imageService;
     }
 
     public async Task<string> Handle(UpdateProfilePictureCommand request, CancellationToken cancellationToken)
@@ -34,8 +39,7 @@ public sealed class UpdateProfilePictureCommandHandler : IRequestHandler<UpdateP
             await _fileStorageService.DeleteAsync(user.ProfileImageUrl, ProfilePicturesContainer);
         }
 
-        var fileName = user.Id + Path.GetExtension(request.ProfilePicture.FileName);
-        var newImageUrl = await _fileStorageService.UploadAsync(request.ProfilePicture, ProfilePicturesContainer, fileName);
+        var newImageUrl = await _imageService.UploadProfilePictureAsync(request.ProfilePicture, user.Id, cancellationToken);
 
         user.ProfileImageUrl = newImageUrl;
         var result = await _userManager.UpdateAsync(user);

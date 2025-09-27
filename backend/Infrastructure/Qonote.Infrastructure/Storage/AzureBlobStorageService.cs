@@ -36,7 +36,13 @@ public class AzureBlobStorageService : IFileStorageService
     public async Task DeleteAsync(string fileUrl, string containerName)
     {
         var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
-        var blobName = Path.GetFileName(new Uri(fileUrl).AbsolutePath);
+        var uri = new Uri(fileUrl);
+        // Blob name may contain folders; remove leading '/{container}/'
+        var absolutePath = uri.AbsolutePath; // e.g., /thumbnails/userId/notes/123/thumbnail.jpg
+        var prefix = "/" + containerName + "/";
+        var blobName = absolutePath.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+            ? absolutePath.Substring(prefix.Length)
+            : absolutePath.TrimStart('/');
         var blobClient = containerClient.GetBlobClient(blobName);
         await blobClient.DeleteIfExistsAsync();
     }

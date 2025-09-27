@@ -15,6 +15,8 @@ using Qonote.Infrastructure.Security.External.Google;
 using Qonote.Infrastructure.Storage;
 using Qonote.Infrastructure.YouTube;
 using Qonote.Core.Application.Abstractions.YouTube;
+using Qonote.Core.Application.Abstractions.Media;
+using Qonote.Infrastructure.Media;
 
 namespace Qonote.Infrastructure.Infrastructure;
 
@@ -37,6 +39,7 @@ public static class ServiceRegistration
         services.AddTransient<ITokenService, TokenService>();
         services.AddTransient<IGoogleAuthService, GoogleAuthService>();
         services.AddScoped<IFileStorageService, AzureBlobStorageService>();
+        services.AddTransient<IImageService, ImageService>();
         services.AddTransient<IEmailService, AzureEmailService>();
         services.AddHttpClient<IYouTubeMetadataService, YouTubeMetadataService>();
 

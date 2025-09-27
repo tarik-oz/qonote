@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Qonote.Core.Application.Abstractions.Authentication;
 using Qonote.Core.Application.Abstractions.Factories;
 using Qonote.Core.Application.Abstractions.Storage;
+using Qonote.Core.Application.Abstractions.Media;
 using Qonote.Core.Application.Exceptions;
 using Qonote.Core.Application.Features.Auth._Shared;
 using Qonote.Core.Domain.Identity;
@@ -16,6 +17,7 @@ public sealed class ExternalLoginCommandHandler : IRequestHandler<ExternalLoginC
     private readonly ILoginResponseFactory _loginResponseFactory;
     private readonly IGoogleAuthService _googleAuthService;
     private readonly IFileStorageService _fileStorageService;
+    private readonly IImageService _imageService;
     private readonly HttpClient _httpClient;
     private readonly IMapper _mapper;
 
@@ -24,6 +26,7 @@ public sealed class ExternalLoginCommandHandler : IRequestHandler<ExternalLoginC
         ILoginResponseFactory loginResponseFactory,
         IGoogleAuthService googleAuthService,
         IFileStorageService fileStorageService,
+        IImageService imageService,
         HttpClient httpClient,
         IMapper mapper)
     {
@@ -31,6 +34,7 @@ public sealed class ExternalLoginCommandHandler : IRequestHandler<ExternalLoginC
         _loginResponseFactory = loginResponseFactory;
         _googleAuthService = googleAuthService;
         _fileStorageService = fileStorageService;
+        _imageService = imageService;
         _httpClient = httpClient;
         _mapper = mapper;
     }
@@ -57,22 +61,11 @@ public sealed class ExternalLoginCommandHandler : IRequestHandler<ExternalLoginC
 
             if (!string.IsNullOrWhiteSpace(userInfo.ProfilePictureUrl))
             {
-                try
+                var uploadedUrl = await _imageService.UploadProfilePictureFromUrlAsync(userInfo.ProfilePictureUrl, newUser.Id, cancellationToken);
+                if (!string.IsNullOrWhiteSpace(uploadedUrl))
                 {
-                    var newFileName = newUser.Id + ".jpg";
-                    var response = await _httpClient.GetAsync(userInfo.ProfilePictureUrl, cancellationToken);
-                    if (response.IsSuccessStatusCode)
-                    {
-                        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-                        var contentType = response.Content.Headers.ContentType?.MediaType ?? "image/jpeg";
-                        var uploadedUrl = await _fileStorageService.UploadAsync(stream, "profile-pictures", newFileName, contentType);
-                        newUser.ProfileImageUrl = uploadedUrl;
-                        await _userManager.UpdateAsync(newUser);
-                    }
-                }
-                catch (Exception)
-                {
-                    // Log the exception (ex) but don't fail the registration process if image download fails.
+                    newUser.ProfileImageUrl = uploadedUrl!;
+                    await _userManager.UpdateAsync(newUser);
                 }
             }
 
