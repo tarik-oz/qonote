@@ -88,6 +88,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Ensure default subscription plans are seeded (non-fatal if DB is unavailable)
+try
+{
+    await Qonote.Infrastructure.Persistence.Seeding.SubscriptionSeeding.EnsureDefaultPlansAsync(app.Services);
+}
+catch (Exception ex)
+{
+    app.Logger.LogWarning(ex, "Subscription plan seeding skipped (database not available). The app will continue to start.");
+}
+
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
 app.UseHttpsRedirection();

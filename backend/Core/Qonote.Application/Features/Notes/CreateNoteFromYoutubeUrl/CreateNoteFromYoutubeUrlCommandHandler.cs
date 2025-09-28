@@ -1,45 +1,42 @@
 using MediatR;
-using AutoMapper;
 using Qonote.Core.Application.Abstractions.Data;
 using Qonote.Core.Application.Abstractions.Security;
 using Qonote.Core.Application.Abstractions.Factories;
 using Qonote.Core.Application.Abstractions.YouTube;
 using Qonote.Core.Application.Features.Notes._Shared;
-using Qonote.Core.Application.Abstractions.Storage;
 using Qonote.Core.Application.Exceptions;
 using Qonote.Core.Application.Abstractions.Media;
+using Qonote.Core.Application.Abstractions.Subscriptions;
 using Qonote.Core.Domain.Entities;
-using Qonote.Core.Domain.Enums;
 
 namespace Qonote.Core.Application.Features.Notes.CreateNoteFromYoutubeUrl;
 
 public sealed class CreateNoteFromYoutubeUrlCommandHandler : IRequestHandler<CreateNoteFromYoutubeUrlCommand, int>
 {
-    private readonly IReadRepository<Note, int> _noteReadRepository;
     private readonly IWriteRepository<Note, int> _noteWriteRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
     private readonly IYouTubeMetadataService _youTube;
     private readonly IImageService _imageService;
     private readonly INoteFactory _noteFactory;
-    private const string ThumbnailsContainer = "thumbnails";
+    private readonly ILimitCheckerService _limitChecker;
 
     public CreateNoteFromYoutubeUrlCommandHandler(
-        IReadRepository<Note, int> noteReadRepository,
         IWriteRepository<Note, int> noteWriteRepository,
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUser,
-    IYouTubeMetadataService youTube,
-    IImageService imageService,
-        INoteFactory noteFactory)
+        IYouTubeMetadataService youTube,
+        IImageService imageService,
+        INoteFactory noteFactory,
+        ILimitCheckerService limitChecker)
     {
-        _noteReadRepository = noteReadRepository;
         _noteWriteRepository = noteWriteRepository;
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _youTube = youTube;
         _imageService = imageService;
         _noteFactory = noteFactory;
+        _limitChecker = limitChecker;
     }
 
     public async Task<int> Handle(CreateNoteFromYoutubeUrlCommand request, CancellationToken cancellationToken)
@@ -52,6 +49,9 @@ public sealed class CreateNoteFromYoutubeUrlCommandHandler : IRequestHandler<Cre
             // This should be caught by validator, defensive check here
             throw new ValidationException(new[] { new FluentValidation.Results.ValidationFailure("YoutubeUrl", "Invalid YouTube URL.") });
         }
+
+        // Enforce subscription limit for creating notes
+        await _limitChecker.EnsureUserCanCreateNoteAsync(userId, cancellationToken);
 
         // Per-user title uniqueness and duplicate video are enforced via business rules (pipeline behavior)
         var trimmedCustomTitle = request.CustomTitle?.Trim();

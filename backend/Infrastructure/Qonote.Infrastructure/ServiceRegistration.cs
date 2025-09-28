@@ -17,6 +17,8 @@ using Qonote.Infrastructure.YouTube;
 using Qonote.Core.Application.Abstractions.YouTube;
 using Qonote.Core.Application.Abstractions.Media;
 using Qonote.Infrastructure.Media;
+using Qonote.Core.Application.Abstractions.Subscriptions;
+using Qonote.Infrastructure.Subscriptions;
 
 namespace Qonote.Infrastructure.Infrastructure;
 
@@ -41,6 +43,8 @@ public static class ServiceRegistration
         services.AddScoped<IFileStorageService, AzureBlobStorageService>();
         services.AddTransient<IImageService, ImageService>();
         services.AddTransient<IEmailService, AzureEmailService>();
+        services.AddScoped<IPlanResolver, PlanResolver>();
+        services.AddScoped<ILimitCheckerService, LimitCheckerService>();
         services.AddHttpClient<IYouTubeMetadataService, YouTubeMetadataService>();
 
         services.AddIdentityCore<ApplicationUser>(options =>
