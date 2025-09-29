@@ -91,7 +91,8 @@ if (app.Environment.IsDevelopment())
 // Ensure default subscription plans are seeded (non-fatal if DB is unavailable)
 try
 {
-    await Qonote.Infrastructure.Persistence.Seeding.SubscriptionSeeding.EnsureDefaultPlansAsync(app.Services);
+    await Qonote.Infrastructure.Persistence.Seeding.SubscriptionPlanSeeding.EnsureDefaultPlansAsync(app.Services);
+    await Qonote.Infrastructure.Persistence.Seeding.IdentitySeeding.EnsureAdminRoleAndBootstrapAsync(app.Services, app.Configuration);
 }
 catch (Exception ex)
 {
