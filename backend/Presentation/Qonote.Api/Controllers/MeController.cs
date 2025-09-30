@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Qonote.Core.Application.Features.Users.UpdateProfileInfo;
 using Qonote.Core.Application.Features.Users.UpdateProfilePicture;
 using Qonote.Core.Application.Features.Users.ChangePassword;
+using Qonote.Core.Application.Features.Users.GetMyPlan;
+using Qonote.Core.Application.Features.Users.GetMe;
 
 namespace Qonote.Presentation.Api.Controllers;
 
@@ -48,5 +50,21 @@ public class MeController : ControllerBase
     {
         await _mediator.Send(command, ct);
         return NoContent();
+    }
+
+    [HttpGet]
+    [ProducesResponseType(typeof(GetMeDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMe(CancellationToken ct)
+    {
+        var dto = await _mediator.Send(new GetMeQuery(), ct);
+        return Ok(dto);
+    }
+
+    [HttpGet("plan")]
+    [ProducesResponseType(typeof(MyPlanDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMyPlan(CancellationToken ct)
+    {
+        var dto = await _mediator.Send(new GetMyPlanQuery(), ct);
+        return Ok(dto);
     }
 }

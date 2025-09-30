@@ -60,7 +60,7 @@ public sealed class CreateNoteFromYoutubeUrlCommandHandler : IRequestHandler<Cre
         var meta = request.Metadata ?? await _youTube.GetVideoMetadataAsync(videoId, cancellationToken);
 
         // Create entity via factory (business rules already validate title uniqueness incl. derived)
-        var note = _noteFactory.CreateFromYouTubeMetadata(meta, userId, request.YoutubeUrl, request.CustomTitle);
+        var note = _noteFactory.CreateFromYouTubeMetadata(meta, userId, request.YoutubeUrl, trimmedCustomTitle);
 
         await _noteWriteRepository.AddAsync(note, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

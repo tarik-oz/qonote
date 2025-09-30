@@ -64,4 +64,12 @@ public sealed class NoteQueries : INoteQueries
             .ProjectTo<NoteListItemDto>(_mapperConfig)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<int> CountActiveNotesAsync(string userId, CancellationToken cancellationToken)
+    {
+        return await _db.Set<Note>()
+            .AsNoTracking()
+            .Where(n => !n.IsDeleted && n.UserId == userId)
+            .CountAsync(cancellationToken);
+    }
 }

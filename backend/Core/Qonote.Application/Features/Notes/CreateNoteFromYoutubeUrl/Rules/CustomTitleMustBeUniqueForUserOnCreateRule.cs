@@ -66,8 +66,9 @@ public sealed class CustomTitleMustBeUniqueForUserOnCreateRule : IBusinessRule<C
             return Array.Empty<RuleViolation>();
         }
 
+        var normalized = titleToCheck.ToLower();
         var existing = await _noteRead.GetAllAsync(
-            n => n.UserId == userId && n.CustomTitle.ToLower() == titleToCheck.ToLower(),
+            n => n.UserId == userId && n.CustomTitle.ToLower() == normalized,
             cancellationToken);
 
         if (existing.Any())

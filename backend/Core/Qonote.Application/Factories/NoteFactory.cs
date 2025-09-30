@@ -21,7 +21,8 @@ public sealed class NoteFactory : INoteFactory
         var note = _mapper.Map<Note>(meta);
         note.UserId = userId;
         note.YoutubeUrl = youtubeUrl;
-        note.CustomTitle = string.IsNullOrWhiteSpace(customTitle) ? meta.Title : customTitle;
+        var finalTitle = string.IsNullOrWhiteSpace(customTitle) ? meta.Title : customTitle;
+        note.CustomTitle = finalTitle?.Trim() ?? string.Empty;
         note.Sections = new List<Section>();
 
         // Section 1: Video Info
