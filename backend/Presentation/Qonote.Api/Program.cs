@@ -1,4 +1,5 @@
 using System.Text;
+using Serilog;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -10,8 +11,17 @@ using Swashbuckle.AspNetCore.Filters;
 using Microsoft.AspNetCore.Mvc;
 using Qonote.Presentation.Api.Contracts;
 using System.Text.Json.Serialization;
+using Qonote.Presentation.Api.Infrastructure.Health;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Serilog early
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .CreateLogger();
+builder.Host.UseSerilog();
 
 // Add services to the container.
 builder.Services.AddPersistenceServices(builder.Configuration);
@@ -63,6 +73,10 @@ builder.Services.AddSwaggerGen(options =>
     options.OperationFilter<SecurityRequirementsOperationFilter>();
 });
 
+// Health Checks
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("db");
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -88,6 +102,28 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Request logging with Serilog (method, path, status, elapsed) and userId/clientIp enrichment
+app.UseSerilogRequestLogging(options =>
+{
+    options.EnrichDiagnosticContext = (diag, http) =>
+    {
+        var userId = http.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                     ?? http.User?.FindFirst("sub")?.Value
+                     ?? http.User?.FindFirst("userid")?.Value
+                     ?? http.User?.Identity?.Name;
+        if (!string.IsNullOrWhiteSpace(userId))
+        {
+            diag.Set("userId", userId);
+        }
+
+        var clientIp = http.Connection.RemoteIpAddress?.ToString();
+        if (!string.IsNullOrWhiteSpace(clientIp))
+        {
+            diag.Set("clientIp", clientIp);
+        }
+    };
+});
+
 // Ensure default subscription plans are seeded (non-fatal if DB is unavailable)
 try
 {
@@ -108,5 +144,32 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Health endpoints
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => false, // always healthy if process is up
+    ResponseWriter = async (ctx, report) =>
+    {
+        ctx.Response.ContentType = "application/json";
+        await ctx.Response.WriteAsync(JsonSerializer.Serialize(new { status = "Healthy" }));
+    }
+}).AllowAnonymous();
+
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => true,
+    ResponseWriter = async (ctx, report) =>
+    {
+        ctx.Response.ContentType = "application/json";
+        var payload = new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(e => new { name = e.Key, status = e.Value.Status.ToString(), error = e.Value.Exception?.Message }),
+            duration = report.TotalDuration.TotalMilliseconds
+        };
+        await ctx.Response.WriteAsync(JsonSerializer.Serialize(payload));
+    }
+}).AllowAnonymous();
 
 app.Run();

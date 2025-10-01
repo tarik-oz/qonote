@@ -19,6 +19,9 @@ using Qonote.Core.Application.Abstractions.Media;
 using Qonote.Infrastructure.Media;
 using Qonote.Core.Application.Abstractions.Subscriptions;
 using Qonote.Infrastructure.Subscriptions;
+using Qonote.Infrastructure.Infrastructure.Caching;
+using Qonote.Core.Application.Abstractions.Caching;
+using StackExchange.Redis;
 
 namespace Qonote.Infrastructure.Infrastructure;
 
@@ -62,6 +65,27 @@ public static class ServiceRegistration
             .AddTokenProvider<DataProtectorTokenProvider<ApplicationUser>>(TokenOptions.DefaultProvider);
 
         services.AddHttpClient();
+
+        // Caching (Redis-only or NoOp)
+        services.Configure<CacheOptions>(configuration.GetSection("Caching"));
+        var cacheEnabled = configuration.GetValue<bool>("Caching:Enabled");
+        var cacheConn = configuration["Caching:Redis:ConnectionString"];
+        if (cacheEnabled && !string.IsNullOrWhiteSpace(cacheConn))
+        {
+            // Register ConnectionMultiplexer for advanced Redis operations (e.g., atomic INCR)
+            services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(cacheConn));
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = cacheConn;
+            });
+            services.AddSingleton<ICacheService, CacheService>();
+        }
+        else
+        {
+            services.AddSingleton<ICacheService, NoOpCacheService>();
+        }
+        services.AddSingleton<ICacheTtlProvider, CacheTtlProvider>();
+        services.AddSingleton<ICacheInvalidationService, CacheInvalidationService>();
 
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();

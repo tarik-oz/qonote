@@ -6,6 +6,7 @@ using Qonote.Core.Application.Exceptions;
 using Qonote.Core.Domain.Identity;
 
 using Qonote.Core.Application.Abstractions.Media;
+using Qonote.Core.Application.Abstractions.Caching;
 
 namespace Qonote.Core.Application.Features.Users.UpdateProfilePicture;
 
@@ -15,18 +16,21 @@ public sealed class UpdateProfilePictureCommandHandler : IRequestHandler<UpdateP
     private readonly ICurrentUserService _currentUserService;
     private readonly IFileStorageService _fileStorageService;
     private readonly IImageService _imageService;
+    private readonly ICacheInvalidationService _cacheInvalidation;
     private const string ProfilePicturesContainer = "profile-pictures";
 
     public UpdateProfilePictureCommandHandler(
         UserManager<ApplicationUser> userManager,
         ICurrentUserService currentUserService,
         IFileStorageService fileStorageService,
-        IImageService imageService)
+        IImageService imageService,
+        ICacheInvalidationService cacheInvalidation)
     {
         _userManager = userManager;
         _currentUserService = currentUserService;
         _fileStorageService = fileStorageService;
         _imageService = imageService;
+        _cacheInvalidation = cacheInvalidation;
     }
 
     public async Task<string> Handle(UpdateProfilePictureCommand request, CancellationToken cancellationToken)
@@ -48,6 +52,9 @@ public sealed class UpdateProfilePictureCommandHandler : IRequestHandler<UpdateP
         {
             throw new ValidationException(result.Errors.Select(e => new FluentValidation.Results.ValidationFailure(e.Code, e.Description)));
         }
+
+        // Invalidate /api/me cache so next fetch shows new profile picture
+        await _cacheInvalidation.RemoveMeAsync(_currentUserService.UserId!, cancellationToken);
 
         return newImageUrl;
     }

@@ -3,7 +3,7 @@ using Qonote.Core.Domain.Identity;
 
 namespace Qonote.Core.Domain.Entities
 {
-    public class Note : EntityBase<int>
+    public class Note : EntityBase<int>, ISidebarAffecting
     {
         public string CustomTitle { get; set; } = string.Empty;
         public string YoutubeUrl { get; set; } = string.Empty;

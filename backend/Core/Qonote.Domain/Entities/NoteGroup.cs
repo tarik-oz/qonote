@@ -3,7 +3,7 @@ using Qonote.Core.Domain.Identity;
 
 namespace Qonote.Core.Domain.Entities
 {
-    public class NoteGroup : EntityBase<int>
+    public class NoteGroup : EntityBase<int>, ISidebarAffecting
     {
         public string Name { get; set; } = string.Empty;
         public int Order { get; set; } = 0;

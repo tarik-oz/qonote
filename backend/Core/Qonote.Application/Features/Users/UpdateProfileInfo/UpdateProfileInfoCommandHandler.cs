@@ -2,6 +2,7 @@ using AutoMapper;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Qonote.Core.Application.Abstractions.Security;
+using Qonote.Core.Application.Abstractions.Caching;
 using Qonote.Core.Application.Exceptions;
 using Qonote.Core.Domain.Identity;
 
@@ -12,12 +13,14 @@ public sealed class UpdateProfileInfoCommandHandler : IRequestHandler<UpdateProf
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ICurrentUserService _currentUserService;
     private readonly IMapper _mapper;
+    private readonly ICacheInvalidationService _cacheInvalidation;
 
-    public UpdateProfileInfoCommandHandler(UserManager<ApplicationUser> userManager, ICurrentUserService currentUserService, IMapper mapper)
+    public UpdateProfileInfoCommandHandler(UserManager<ApplicationUser> userManager, ICurrentUserService currentUserService, IMapper mapper, ICacheInvalidationService cacheInvalidation)
     {
         _userManager = userManager;
         _currentUserService = currentUserService;
         _mapper = mapper;
+        _cacheInvalidation = cacheInvalidation;
     }
 
     public async Task<Unit> Handle(UpdateProfileInfoCommand request, CancellationToken cancellationToken)
@@ -34,6 +37,9 @@ public sealed class UpdateProfileInfoCommandHandler : IRequestHandler<UpdateProf
         {
             throw new ValidationException(result.Errors.Select(e => new FluentValidation.Results.ValidationFailure(e.Code, e.Description)));
         }
+
+        // Invalidate /api/me cache so next fetch reflects updated info
+        await _cacheInvalidation.RemoveMeAsync(_currentUserService.UserId!, cancellationToken);
 
         return Unit.Value;
     }
