@@ -18,5 +18,11 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
 
         builder.Property(u => u.RefreshToken)
             .HasMaxLength(256);
+
+        builder.Property(u => u.ExternalCustomerId)
+            .HasMaxLength(255);
+
+        // Indexes
+        builder.HasIndex(u => u.ExternalCustomerId);
     }
 }

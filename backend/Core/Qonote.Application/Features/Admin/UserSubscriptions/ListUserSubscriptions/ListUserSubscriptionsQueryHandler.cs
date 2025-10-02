@@ -36,7 +36,7 @@ public sealed class ListUserSubscriptionsQueryHandler : IRequestHandler<ListUser
                 us.EndDate,
                 us.PriceAmount,
                 us.Currency,
-                us.BillingPeriod
+                us.BillingInterval
             ))
             .ToList();
     }

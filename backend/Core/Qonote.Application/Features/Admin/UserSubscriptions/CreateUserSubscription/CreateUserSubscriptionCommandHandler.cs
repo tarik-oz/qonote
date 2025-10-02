@@ -40,7 +40,10 @@ public sealed class CreateUserSubscriptionCommandHandler : IRequestHandler<Creat
             EndDate = request.EndDateUtc,
             PriceAmount = request.PriceAmount,
             Currency = request.Currency,
-            BillingPeriod = request.BillingPeriod
+            BillingInterval = request.BillingInterval,
+            Status = Domain.Enums.SubscriptionStatus.Active,
+            PaymentProvider = "Manual", // Admin manually created this subscription
+            AutoRenew = false // Manual subscriptions don't auto-renew
         };
 
         await _writer.AddAsync(entity, cancellationToken);

@@ -15,6 +15,9 @@ public class ApplicationUser : IdentityUser, IEntityBase<string>
     // Email Confirmation
     public string? EmailConfirmationCode { get; set; }
     public DateTime? EmailConfirmationCodeExpiry { get; set; }
+    
+    // Payment Provider Integration
+    public string? ExternalCustomerId { get; set; } // Payment provider customer ID
 
     // Properties from IEntityBase
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -26,4 +29,6 @@ public class ApplicationUser : IdentityUser, IEntityBase<string>
     public ICollection<NoteGroup> NoteGroups { get; set; } = new List<NoteGroup>();
     public ICollection<Note> Notes { get; set; } = new List<Note>();
     public ICollection<SectionUIState> SectionUIStates { get; set; } = new List<SectionUIState>();
+    public ICollection<UserSubscription> UserSubscriptions { get; set; } = new List<UserSubscription>();
+    public ICollection<Payment> Payments { get; set; } = new List<Payment>();
 }

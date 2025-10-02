@@ -33,6 +33,7 @@ public static class ServiceRegistration
         services.Configure<GoogleSettings>(configuration.GetSection("GoogleSettings"));
         services.Configure<BlobStorageSettings>(configuration.GetSection("BlobStorage"));
         services.Configure<YouTubeSettings>(configuration.GetSection("YouTube"));
+        services.Configure<LemonSqueezySettings>(configuration.GetSection("LemonSqueezy"));
         services.AddOptions<EmailSettings>()
             .Bind(configuration.GetSection("EmailSettings"))
             .Validate(e => e.DisableDelivery ||
@@ -48,6 +49,7 @@ public static class ServiceRegistration
         services.AddTransient<IEmailService, AzureEmailService>();
         services.AddScoped<IPlanResolver, PlanResolver>();
         services.AddScoped<ILimitCheckerService, LimitCheckerService>();
+        services.AddHttpClient<IPaymentService, PaymentService>(); // HttpClient for Lemon Squeezy API
         services.AddHttpClient<IYouTubeMetadataService, YouTubeMetadataService>();
 
         services.AddIdentityCore<ApplicationUser>(options =>

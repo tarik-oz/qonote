@@ -8,21 +8,51 @@ public class UserSubscriptionConfiguration : IEntityTypeConfiguration<UserSubscr
 {
     public void Configure(EntityTypeBuilder<UserSubscription> builder)
     {
+        builder.HasKey(us => us.Id);
+
         builder.Property(us => us.UserId)
             .HasMaxLength(450)
             .IsRequired();
 
+        builder.Property(us => us.PriceAmount)
+            .HasPrecision(18, 2)
+            .IsRequired();
+
         builder.Property(us => us.Currency)
-            .HasMaxLength(10);
+            .HasMaxLength(10)
+            .IsRequired();
 
-        builder.Property(us => us.BillingPeriod)
-            .HasMaxLength(20);
+        builder.Property(us => us.CancellationReason)
+            .HasMaxLength(500);
 
-        builder.HasIndex(us => new { us.UserId, us.StartDate, us.EndDate });
+        builder.Property(us => us.ExternalSubscriptionId)
+            .HasMaxLength(255);
+
+        builder.Property(us => us.ExternalCustomerId)
+            .HasMaxLength(255);
+
+        builder.Property(us => us.ExternalPriceId)
+            .HasMaxLength(255);
+
+        builder.Property(us => us.PaymentProvider)
+            .HasMaxLength(50)
+            .IsRequired();
+
+        // Relationships
+        builder.HasOne(us => us.User)
+            .WithMany(u => u.UserSubscriptions)
+            .HasForeignKey(us => us.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(us => us.Plan)
-            .WithMany()
+            .WithMany(p => p.UserSubscriptions)
             .HasForeignKey(us => us.PlanId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Indexes
+        builder.HasIndex(us => us.UserId);
+        builder.HasIndex(us => new { us.UserId, us.Status });
+        builder.HasIndex(us => us.ExternalSubscriptionId);
+        builder.HasIndex(us => us.Status);
     }
 }

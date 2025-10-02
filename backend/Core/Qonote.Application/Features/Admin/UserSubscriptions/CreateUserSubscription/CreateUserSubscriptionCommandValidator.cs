@@ -9,15 +9,15 @@ public sealed class CreateUserSubscriptionCommandValidator : AbstractValidator<C
         RuleFor(x => x.UserId).NotEmpty();
         RuleFor(x => x.PlanCode).NotEmpty();
         RuleFor(x => x.StartDateUtc)
-            .LessThan(x => x.EndDateUtc)
+            .LessThan(x => x.EndDateUtc!.Value)
+            .When(x => x.EndDateUtc.HasValue)
             .WithMessage("StartDateUtc must be before EndDateUtc");
         RuleFor(x => x.Currency)
-            .MaximumLength(10)
-            .When(x => x.Currency != null);
-        RuleFor(x => x.BillingPeriod)
-            .MaximumLength(20)
-            .When(x => x.BillingPeriod != null);
+            .NotEmpty()
+            .MaximumLength(10);
         RuleFor(x => x.PriceAmount)
-            .GreaterThanOrEqualTo(0).When(x => x.PriceAmount.HasValue);
+            .GreaterThanOrEqualTo(0);
+        RuleFor(x => x.BillingInterval)
+            .IsInEnum();
     }
 }
