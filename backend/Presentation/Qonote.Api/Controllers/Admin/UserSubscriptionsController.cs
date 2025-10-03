@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Qonote.Core.Application.Features.Admin.UserSubscriptions.CreateUserSubscription;
 using Qonote.Core.Application.Features.Admin.UserSubscriptions.ListUserSubscriptions;
+using Qonote.Core.Application.Features.Subscriptions._Shared;
+using Qonote.Core.Domain.Enums;
 
 namespace Qonote.Presentation.Api.Controllers.Admin;
 
@@ -25,10 +27,10 @@ public class UserSubscriptionsController : ControllerBase
     public sealed record CreateUserSubscriptionBody(
         string PlanCode,
         DateTime StartDateUtc,
-        DateTime EndDateUtc,
-        decimal? PriceAmount,
-        string? Currency,
-        string? BillingPeriod
+        DateTime? EndDateUtc,
+        decimal PriceAmount,
+        string Currency,
+        BillingInterval BillingInterval
     );
 
     [HttpPost]
@@ -44,7 +46,7 @@ public class UserSubscriptionsController : ControllerBase
             body.EndDateUtc,
             body.PriceAmount,
             body.Currency,
-            body.BillingPeriod
+            body.BillingInterval
         ), ct);
 
         return Ok(new { id });

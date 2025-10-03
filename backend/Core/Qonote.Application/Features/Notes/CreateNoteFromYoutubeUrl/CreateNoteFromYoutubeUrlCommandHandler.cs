@@ -14,6 +14,7 @@ namespace Qonote.Core.Application.Features.Notes.CreateNoteFromYoutubeUrl;
 public sealed class CreateNoteFromYoutubeUrlCommandHandler : IRequestHandler<CreateNoteFromYoutubeUrlCommand, int>
 {
     private readonly IWriteRepository<Note, int> _noteWriteRepository;
+    private readonly IReadRepository<Note, int> _noteReadRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
     private readonly IYouTubeMetadataService _youTube;
@@ -23,6 +24,7 @@ public sealed class CreateNoteFromYoutubeUrlCommandHandler : IRequestHandler<Cre
 
     public CreateNoteFromYoutubeUrlCommandHandler(
         IWriteRepository<Note, int> noteWriteRepository,
+        IReadRepository<Note, int> noteReadRepository,
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUser,
         IYouTubeMetadataService youTube,
@@ -31,6 +33,7 @@ public sealed class CreateNoteFromYoutubeUrlCommandHandler : IRequestHandler<Cre
         ILimitCheckerService limitChecker)
     {
         _noteWriteRepository = noteWriteRepository;
+        _noteReadRepository = noteReadRepository;
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _youTube = youTube;
@@ -61,6 +64,12 @@ public sealed class CreateNoteFromYoutubeUrlCommandHandler : IRequestHandler<Cre
 
         // Create entity via factory (business rules already validate title uniqueness incl. derived)
         var note = _noteFactory.CreateFromYouTubeMetadata(meta, userId, request.YoutubeUrl, trimmedCustomTitle);
+
+        // Set Order: new notes go to the end
+        var existingNotes = await _noteReadRepository.GetAllAsync(
+            n => n.UserId == userId && n.NoteGroupId == null, 
+            cancellationToken);
+        note.Order = existingNotes.Any() ? existingNotes.Max(n => n.Order) + 1 : 0;
 
         await _noteWriteRepository.AddAsync(note, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

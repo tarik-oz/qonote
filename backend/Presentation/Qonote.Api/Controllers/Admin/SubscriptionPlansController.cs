@@ -1,7 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Qonote.Core.Application.Features.Admin.SubscriptionPlans._Shared;
+using Qonote.Core.Application.Features.Subscriptions._Shared;
 using Qonote.Core.Application.Features.Admin.SubscriptionPlans.Create;
 using Qonote.Core.Application.Features.Admin.SubscriptionPlans.Delete;
 using Qonote.Core.Application.Features.Admin.SubscriptionPlans.GetById;

@@ -11,7 +11,7 @@ public sealed class GroupItemDto
 {
     public int Id { get; set; }
     public string Title { get; set; } = string.Empty;
-    public DateTime? UpdatedAt { get; set; }
+    public int Order { get; set; }
     public int NoteCount { get; set; }
     public List<string> PreviewThumbnails { get; set; } = new();
 }
@@ -21,5 +21,5 @@ public sealed class NoteListItemDto
     public int Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public string ThumbnailUrl { get; set; } = string.Empty;
-    public DateTime? UpdatedAt { get; set; }
+    public int Order { get; set; }
 }

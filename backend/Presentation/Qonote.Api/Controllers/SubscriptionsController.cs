@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Qonote.Core.Application.Features.Subscriptions.DTOs;
+using Qonote.Core.Application.Features.Subscriptions._Shared;
 using Qonote.Core.Domain.Enums;
 
 namespace Qonote.Api.Controllers;

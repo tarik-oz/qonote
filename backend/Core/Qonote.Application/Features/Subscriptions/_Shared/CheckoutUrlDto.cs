@@ -1,4 +1,4 @@
-namespace Qonote.Core.Application.Features.Subscriptions.DTOs;
+namespace Qonote.Core.Application.Features.Subscriptions._Shared;
 
 public record CheckoutUrlDto
 {

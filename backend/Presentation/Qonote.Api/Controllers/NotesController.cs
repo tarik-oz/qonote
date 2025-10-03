@@ -7,6 +7,7 @@ using Qonote.Core.Application.Features.Notes.AssignGroup;
 using Qonote.Core.Application.Features.Notes.ListFlatNotes;
 using Qonote.Core.Application.Features.Notes.Reorder;
 using Qonote.Core.Application.Features.Notes.UpdateNote;
+using Qonote.Core.Application.Features.Notes.SearchNotes;
 
 namespace Qonote.Presentation.Api.Controllers;
 
@@ -52,6 +53,19 @@ public class NotesController : ControllerBase
     {
         var list = await _mediator.Send(new ListFlatNotesQuery(limit, offset), ct);
         return Ok(list);
+    }
+
+    [HttpGet("search")]
+    [ProducesResponseType(typeof(SearchNotesResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Search([FromQuery] string q, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new SearchNotesQuery 
+        { 
+            Query = q ?? string.Empty, 
+            PageNumber = pageNumber, 
+            PageSize = pageSize 
+        }, ct);
+        return Ok(result);
     }
 
     [HttpPatch("order")]

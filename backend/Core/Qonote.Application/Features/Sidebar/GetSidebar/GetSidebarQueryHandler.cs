@@ -50,8 +50,7 @@ public sealed class GetSidebarQueryHandler : IRequestHandler<GetSidebarQuery, Si
                 {
                     // grouped mode
                     var orderedGroups = groups
-                        .OrderByDescending(g => g.UpdatedAt ?? g.CreatedAt)
-                        .ThenBy(g => g.Order)
+                        .OrderBy(g => g.Order)
                         .ToList();
 
                     var groupDtos = new List<GroupItemDto>(orderedGroups.Count);

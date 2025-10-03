@@ -1,5 +1,6 @@
 using MediatR;
 using Qonote.Core.Application.Abstractions.Data;
+using Qonote.Core.Application.Features.Subscriptions._Shared;
 using Qonote.Core.Domain.Entities;
 
 namespace Qonote.Core.Application.Features.Admin.UserSubscriptions.ListUserSubscriptions;
@@ -25,19 +26,26 @@ public sealed class ListUserSubscriptionsQueryHandler : IRequestHandler<ListUser
         var plans = planIds.Count > 0
             ? await _planReader.GetAllAsync(p => planIds.Contains(p.Id), cancellationToken)
             : new List<SubscriptionPlan>();
-        var planCodeById = plans.ToDictionary(p => p.Id, p => p.PlanCode);
+        var planDict = plans.ToDictionary(p => p.Id);
 
         return items
             .OrderByDescending(us => us.StartDate)
-            .Select(us => new UserSubscriptionDto(
-                us.Id,
-                planCodeById.TryGetValue(us.PlanId, out var code) ? code : string.Empty,
-                us.StartDate,
-                us.EndDate,
-                us.PriceAmount,
-                us.Currency,
-                us.BillingInterval
-            ))
+            .Select(us => new UserSubscriptionDto
+            {
+                Id = us.Id,
+                PlanName = planDict.TryGetValue(us.PlanId, out var plan) ? plan.Name : string.Empty,
+                PlanCode = planDict.TryGetValue(us.PlanId, out var p) ? p.PlanCode : string.Empty,
+                StartDate = us.StartDate,
+                EndDate = us.EndDate,
+                Status = us.Status,
+                AutoRenew = us.AutoRenew,
+                PriceAmount = us.PriceAmount,
+                Currency = us.Currency,
+                BillingInterval = us.BillingInterval,
+                TrialEndDate = us.TrialEndDate,
+                CancelAtPeriodEnd = us.CancelAtPeriodEnd,
+                CurrentPeriodEnd = us.CurrentPeriodEnd
+            })
             .ToList();
     }
 }
