@@ -72,10 +72,14 @@ public sealed class GetSidebarQueryHandler : IRequestHandler<GetSidebarQuery, Si
                         groupDtos.Add(dto);
                     }
 
+                    // Include ungrouped notes
+                    var ungroupedNotes = await _noteQueries.GetOrderedUngroupedNotesAsync(userId, request.Offset, request.Limit, ct);
+
                     return new SidebarDto
                     {
                         Mode = "grouped",
-                        Groups = groupDtos
+                        Groups = groupDtos,
+                        Notes = ungroupedNotes
                     };
                 }
                 else

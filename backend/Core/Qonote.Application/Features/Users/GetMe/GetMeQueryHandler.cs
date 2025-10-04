@@ -5,6 +5,7 @@ using Qonote.Core.Application.Abstractions.Subscriptions;
 using Qonote.Core.Application.Exceptions;
 using Qonote.Core.Domain.Identity;
 using Qonote.Core.Application.Abstractions.Caching;
+using Microsoft.Extensions.Configuration;
 
 namespace Qonote.Core.Application.Features.Users.GetMe;
 
@@ -15,19 +16,22 @@ public sealed class GetMeQueryHandler : IRequestHandler<GetMeQuery, GetMeDto>
     private readonly IPlanResolver _planResolver;
     private readonly ICacheService _cache;
     private readonly ICacheTtlProvider _ttl;
+    private readonly IConfiguration _configuration;
 
     public GetMeQueryHandler(
         ICurrentUserService currentUser,
         UserManager<ApplicationUser> userManager,
         IPlanResolver planResolver,
         ICacheService cache,
-        ICacheTtlProvider ttl)
+        ICacheTtlProvider ttl,
+        IConfiguration configuration)
     {
         _currentUser = currentUser;
         _userManager = userManager;
         _planResolver = planResolver;
         _cache = cache;
         _ttl = ttl;
+        _configuration = configuration;
     }
 
     public async Task<GetMeDto> Handle(GetMeQuery request, CancellationToken cancellationToken)
@@ -41,7 +45,9 @@ public sealed class GetMeQueryHandler : IRequestHandler<GetMeQuery, GetMeDto>
                 throw new NotFoundException("User not found.");
 
             var effective = await _planResolver.GetEffectivePlanAsync(userId, ct);
-            return new GetMeDto(user.Id, user.Email!, user.Name, user.Surname, user.ProfileImageUrl, effective.PlanCode);
+            var defaultUrl = _configuration["Profile:DefaultProfileImageUrl"];
+            var profileUrl = string.IsNullOrWhiteSpace(user.ProfileImageUrl) ? defaultUrl : user.ProfileImageUrl;
+            return new GetMeDto(user.Id, user.Email!, user.Name, user.Surname, profileUrl, effective.PlanCode);
         }, _ttl.GetMeTtl(), cancellationToken);
 
         return me!;

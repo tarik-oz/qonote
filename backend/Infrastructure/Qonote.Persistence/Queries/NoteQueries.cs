@@ -74,6 +74,16 @@ public sealed class NoteQueries : INoteQueries
 
     public async Task<SearchNotesResponse> SearchNotesAsync(string userId, string query, int pageNumber, int pageSize, CancellationToken cancellationToken)
     {
+        // Return empty result for very short queries (debounce/UX guard)
+        if (string.IsNullOrWhiteSpace(query) || query.Trim().Length < 2)
+        {
+            return new SearchNotesResponse
+            {
+                Results = new List<SearchResultDto>(),
+                TotalCount = 0
+            };
+        }
+
         // Sanitize query: remove special characters and convert to tsquery format
         var sanitizedQuery = SanitizeSearchQuery(query);
         
