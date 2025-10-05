@@ -1,9 +1,9 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Qonote.Core.Application.Features.Sections.Create;
-using Qonote.Core.Application.Features.Sections.Update;
-using Qonote.Core.Application.Features.Sections.Delete;
+using Qonote.Core.Application.Features.Sections.CreateSection;
+using Qonote.Core.Application.Features.Sections.UpdateSection;
+using Qonote.Core.Application.Features.Sections.DeleteSection;
 
 namespace Qonote.Presentation.Api.Controllers;
 

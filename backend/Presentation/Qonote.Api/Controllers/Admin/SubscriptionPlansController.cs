@@ -2,11 +2,11 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Qonote.Core.Application.Features.Subscriptions._Shared;
-using Qonote.Core.Application.Features.Admin.SubscriptionPlans.Create;
-using Qonote.Core.Application.Features.Admin.SubscriptionPlans.Delete;
-using Qonote.Core.Application.Features.Admin.SubscriptionPlans.GetById;
-using Qonote.Core.Application.Features.Admin.SubscriptionPlans.List;
-using Qonote.Core.Application.Features.Admin.SubscriptionPlans.Update;
+using Qonote.Core.Application.Features.Admin.SubscriptionPlans.CreateSubscriptionPlan;
+using Qonote.Core.Application.Features.Admin.SubscriptionPlans.DeleteSubscriptionPlan;
+using Qonote.Core.Application.Features.Admin.SubscriptionPlans.GetSubscriptionPlanById;
+using Qonote.Core.Application.Features.Admin.SubscriptionPlans.ListSubscriptionPlans;
+using Qonote.Core.Application.Features.Admin.SubscriptionPlans.UpdateSubscriptionPlan;
 
 namespace Qonote.Presentation.Api.Controllers.Admin;
 

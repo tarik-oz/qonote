@@ -7,6 +7,8 @@ using Qonote.Infrastructure.Persistence.Context;
 using Qonote.Infrastructure.Persistence.Queries;
 using Qonote.Infrastructure.Persistence.Repositories;
 using Qonote.Infrastructure.Persistence.ChangeTracking;
+using Qonote.Infrastructure.Persistence.AccountDeletion;
+using Qonote.Core.Application.Abstractions.Security;
 
 namespace Qonote.Infrastructure.Persistence;
 
@@ -22,6 +24,7 @@ public static class ServiceRegistration
         services.AddScoped<INoteQueries, NoteQueries>();
 
         services.AddScoped<ISidebarImpactEvaluator, SidebarImpactEvaluator>();
+        services.AddScoped<IAccountDeletionService, AccountDeletionService>();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 

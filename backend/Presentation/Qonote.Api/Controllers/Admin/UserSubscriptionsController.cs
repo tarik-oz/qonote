@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Qonote.Core.Application.Features.Admin.UserSubscriptions.CreateUserSubscription;
 using Qonote.Core.Application.Features.Admin.UserSubscriptions.ListUserSubscriptions;
+using Qonote.Core.Application.Features.Admin.UserSubscriptions.CancelUserSubscription;
 using Qonote.Core.Application.Features.Subscriptions._Shared;
 using Qonote.Core.Domain.Enums;
 
@@ -50,5 +51,16 @@ public class UserSubscriptionsController : ControllerBase
         ), ct);
 
         return Ok(new { id });
+    }
+
+    public sealed record CancelUserSubscriptionBody(bool CancelAtPeriodEnd, string? Reason);
+
+    [HttpDelete("{subscriptionId:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Cancel([FromRoute] string userId, [FromRoute] int subscriptionId, [FromBody] CancelUserSubscriptionBody body, CancellationToken ct)
+    {
+        await _mediator.Send(new CancelUserSubscriptionCommand(userId, subscriptionId, body.CancelAtPeriodEnd, body.Reason), ct);
+        return NoContent();
     }
 }

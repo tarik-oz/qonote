@@ -5,7 +5,7 @@ using Qonote.Core.Application.Features.Notes.CreateNoteFromYoutubeUrl;
 using Qonote.Core.Application.Features.Notes.GetNoteById;
 using Qonote.Core.Application.Features.Notes.AssignGroup;
 using Qonote.Core.Application.Features.Notes.ListFlatNotes;
-using Qonote.Core.Application.Features.Notes.Reorder;
+using Qonote.Core.Application.Features.Notes.ReorderNotes;
 using Qonote.Core.Application.Features.Notes.UpdateNote;
 using Qonote.Core.Application.Features.Notes.SearchNotes;
 

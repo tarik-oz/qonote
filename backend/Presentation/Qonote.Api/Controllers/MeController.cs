@@ -6,6 +6,7 @@ using Qonote.Core.Application.Features.Users.UpdateProfilePicture;
 using Qonote.Core.Application.Features.Users.ChangePassword;
 using Qonote.Core.Application.Features.Users.GetMyPlan;
 using Qonote.Core.Application.Features.Users.GetMe;
+using Qonote.Core.Application.Features.Users.DeleteMyAccount;
 
 namespace Qonote.Presentation.Api.Controllers;
 
@@ -66,5 +67,13 @@ public class MeController : ControllerBase
     {
         var dto = await _mediator.Send(new GetMyPlanQuery(), ct);
         return Ok(dto);
+    }
+
+    [HttpDelete]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> DeleteMyAccount(CancellationToken ct)
+    {
+        await _mediator.Send(new DeleteMyAccountCommand(), ct);
+        return NoContent();
     }
 }

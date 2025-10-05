@@ -6,8 +6,8 @@ using Qonote.Core.Application.Features.NoteGroups.ListGroupNotes;
 using Qonote.Core.Application.Features.Sidebar.GetSidebar;
 using Qonote.Core.Application.Features.NoteGroups.DeleteNoteGroup;
 using Qonote.Core.Application.Features.NoteGroups.RenameNoteGroup;
-using Qonote.Core.Application.Features.NoteGroups.Reorder;
-using Qonote.Core.Application.Features.Notes.Reorder;
+using Qonote.Core.Application.Features.NoteGroups.ReorderNoteGroups;
+using Qonote.Core.Application.Features.Notes.ReorderNotes;
 
 namespace Qonote.Presentation.Api.Controllers;
 

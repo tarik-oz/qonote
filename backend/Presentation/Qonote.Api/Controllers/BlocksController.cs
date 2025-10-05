@@ -1,7 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Qonote.Core.Application.Features.Blocks.Update;
+using Qonote.Core.Application.Features.Blocks.UpdateBlock;
 
 namespace Qonote.Presentation.Api.Controllers;
 
