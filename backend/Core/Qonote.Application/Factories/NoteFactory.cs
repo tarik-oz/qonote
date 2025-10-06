@@ -52,11 +52,11 @@ public sealed class NoteFactory : INoteFactory
         });
         note.Sections.Add(general);
 
-        // Timestamped sections from chapters
+        // Timestamped sections from chapters (fallback to equal split if none)
         var chapters = ChapterParser.Parse(meta.Description, meta.Duration);
+        int order = 2;
         if (chapters.Count > 0)
         {
-            int order = 2;
             foreach (var (title, start, end) in chapters)
             {
                 var chapterSection = new Section
@@ -74,6 +74,41 @@ public sealed class NoteFactory : INoteFactory
                     Content = string.Empty
                 });
                 note.Sections.Add(chapterSection);
+            }
+        }
+        else
+        {
+            // Create 3 equal timestamped sections over the full duration
+            var total = meta.Duration;
+            var third = new TimeSpan(total.Ticks / 3);
+            var s0 = TimeSpan.Zero;
+            var s1 = third;
+            var s2 = third + third;
+            var s3 = total;
+
+            var parts = new List<(string title, TimeSpan start, TimeSpan end)>
+            {
+                ("Part 1", s0, s1),
+                ("Part 2", s1, s2),
+                ("Part 3", s2, s3)
+            };
+            foreach (var (title, start, end) in parts)
+            {
+                var section = new Section
+                {
+                    Title = title,
+                    Type = SectionType.Timestamped,
+                    StartTime = start,
+                    EndTime = end,
+                    Order = order++
+                };
+                section.Blocks.Add(new Block
+                {
+                    Type = BlockType.Paragraph,
+                    Order = 0,
+                    Content = string.Empty
+                });
+                note.Sections.Add(section);
             }
         }
 

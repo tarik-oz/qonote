@@ -8,6 +8,7 @@ using Qonote.Core.Application.Features.Notes.ListFlatNotes;
 using Qonote.Core.Application.Features.Notes.ReorderNotes;
 using Qonote.Core.Application.Features.Notes.UpdateNote;
 using Qonote.Core.Application.Features.Notes.SearchNotes;
+using Qonote.Core.Application.Features.Sections.SetUiStateBatch;
 
 namespace Qonote.Presentation.Api.Controllers;
 
@@ -73,6 +74,15 @@ public class NotesController : ControllerBase
     public async Task<IActionResult> Reorder([FromBody] List<ReorderItem> items, CancellationToken ct)
     {
         await _mediator.Send(new ReorderNotesCommand(items), ct);
+        return NoContent();
+    }
+
+    [HttpPut("{noteId:int}/sections/ui-state-batch")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> SetSectionsUiStateBatch(int noteId, [FromBody] SetSectionUiStateBatchCommand body, CancellationToken ct)
+    {
+        var cmd = body with { NoteId = noteId };
+        await _mediator.Send(cmd, ct);
         return NoContent();
     }
 

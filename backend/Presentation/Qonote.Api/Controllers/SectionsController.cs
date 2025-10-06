@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Qonote.Core.Application.Features.Sections.CreateSection;
 using Qonote.Core.Application.Features.Sections.UpdateSection;
 using Qonote.Core.Application.Features.Sections.DeleteSection;
+using Qonote.Core.Application.Features.Sections.ReorderSections;
+using Qonote.Core.Application.Features.Sections.SetUiState;
 
 namespace Qonote.Presentation.Api.Controllers;
 
@@ -40,6 +42,23 @@ public sealed class SectionsController : ControllerBase
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
         await _mediator.Send(new DeleteSectionCommand(id), ct);
+        return NoContent();
+    }
+
+    [HttpPatch("reorder")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> Reorder([FromBody] ReorderSectionsCommand body, CancellationToken ct)
+    {
+        await _mediator.Send(body, ct);
+        return NoContent();
+    }
+
+    [HttpPut("{id:int}/ui-state")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> SetUiState([FromRoute] int id, [FromBody] SetSectionUiStateCommand body, CancellationToken ct)
+    {
+        var cmd = body with { SectionId = id };
+        await _mediator.Send(cmd, ct);
         return NoContent();
     }
 }

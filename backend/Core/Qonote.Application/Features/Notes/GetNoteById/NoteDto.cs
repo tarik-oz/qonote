@@ -25,6 +25,7 @@ public sealed class SectionDto
     public TimeSpan EndTime { get; init; }
     public int Order { get; init; }
     public SectionType Type { get; init; }
+    public bool IsCollapsed { get; set; }
     public List<BlockDto> Blocks { get; init; } = new();
 }
 

@@ -12,6 +12,7 @@ public sealed class GetNoteByIdQueryHandler : IRequestHandler<GetNoteByIdQuery, 
     private readonly IReadRepository<Note, int> _noteReader;
     private readonly IReadRepository<Section, int> _sectionReader;
     private readonly IReadRepository<Block, Guid> _blockReader;
+    private readonly ISectionUiStateStore _uiStateStore;
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
 
@@ -19,12 +20,14 @@ public sealed class GetNoteByIdQueryHandler : IRequestHandler<GetNoteByIdQuery, 
         IReadRepository<Section, int> sectionReader,
         IReadRepository<Block, Guid> blockReader,
         ICurrentUserService currentUser,
+        ISectionUiStateStore uiStateStore,
         IMapper mapper)
     {
         _noteReader = noteReader;
         _sectionReader = sectionReader;
         _blockReader = blockReader;
         _currentUser = currentUser;
+        _uiStateStore = uiStateStore;
         _mapper = mapper;
     }
 
@@ -58,6 +61,9 @@ public sealed class GetNoteByIdQueryHandler : IRequestHandler<GetNoteByIdQuery, 
             .GroupBy(b => b.SectionId)
             .ToDictionary(g => g.Key, g => g.OrderBy(b => b.Order).ToList());
 
+        // Load collapsed set for current user in one query
+        var collapsedSet = await _uiStateStore.GetCollapsedSectionIdsAsync(userId, sectionIds, cancellationToken);
+
         foreach (var s in orderedSections)
         {
             var sDto = _mapper.Map<SectionDto>(s);
@@ -71,6 +77,7 @@ public sealed class GetNoteByIdQueryHandler : IRequestHandler<GetNoteByIdQuery, 
                 }
             }
 
+            sDto.IsCollapsed = collapsedSet.Contains(s.Id);
             dto.Sections.Add(sDto);
         }
 

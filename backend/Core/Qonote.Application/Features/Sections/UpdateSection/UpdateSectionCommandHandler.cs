@@ -43,10 +43,25 @@ public sealed class UpdateSectionCommandHandler : IRequestHandler<UpdateSectionC
             throw new NotFoundException($"Section {request.Id} not found.");
         }
 
-        if (request.Title is not null) section.Title = request.Title.Trim();
-        if (request.Type is not null) section.Type = request.Type.Value;
-        if (request.StartTime is not null) section.StartTime = request.StartTime.Value;
-        if (request.EndTime is not null) section.EndTime = request.EndTime.Value;
+        // Enforce per-type rules: VideoInfo immutable; General allows Title only; Timestamped allows Title/Start/End
+        var isTimestamped = section.Type == Core.Domain.Enums.SectionType.Timestamped;
+        var isVideoInfo = section.Type == Core.Domain.Enums.SectionType.VideoInfo;
+
+        if (isVideoInfo)
+        {
+            // Ignore all updates for VideoInfo to keep invariants
+        }
+        else if (isTimestamped)
+        {
+            if (request.Title is not null) section.Title = request.Title.Trim();
+            if (request.StartTime is not null) section.StartTime = request.StartTime.Value;
+            if (request.EndTime is not null) section.EndTime = request.EndTime.Value;
+        }
+        else
+        {
+            // GeneralNote: Title only
+            if (request.Title is not null) section.Title = request.Title.Trim();
+        }
 
         _sectionWriter.Update(section);
         await _uow.SaveChangesAsync(cancellationToken);

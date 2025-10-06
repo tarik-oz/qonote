@@ -49,11 +49,36 @@ public sealed class DeleteSectionCommandHandler : IRequestHandler<DeleteSectionC
             throw new NotFoundException($"Section {request.Id} not found.");
         }
 
-        // Soft delete section and its blocks (MVP: assume single block, but delete all to be safe)
+        // Only Timestamped sections are deletable; fixed sections (VideoInfo/General) are not
+        if (section.Type != Core.Domain.Enums.SectionType.Timestamped)
+        {
+            throw new ValidationException(new[] { new FluentValidation.Results.ValidationFailure("Id", "Only Timestamped sections can be deleted.") });
+        }
+
+        // Soft delete blocks first
         var blocks = await _blockReader.GetAllAsync(b => b.SectionId == section.Id, cancellationToken);
         foreach (var b in blocks)
         {
             _blockWriter.Delete(b);
+        }
+
+        // Timeline adjustment for Timestamped: merge into left or pull right
+        if (section.Type == Core.Domain.Enums.SectionType.Timestamped)
+        {
+            var siblings = await _sectionReader.GetAllAsync(s => s.NoteId == section.NoteId && s.Type == Core.Domain.Enums.SectionType.Timestamped, cancellationToken);
+            var ordered = siblings.Where(s => s.Id != section.Id).OrderBy(s => s.Order).ToList();
+            var left = ordered.LastOrDefault(s => s.Order < section.Order);
+            var right = ordered.FirstOrDefault(s => s.Order > section.Order);
+            if (left is not null)
+            {
+                left.EndTime = section.EndTime;
+                _sectionWriter.Update(left);
+            }
+            else if (right is not null)
+            {
+                right.StartTime = section.StartTime;
+                _sectionWriter.Update(right);
+            }
         }
 
         _sectionWriter.Delete(section);

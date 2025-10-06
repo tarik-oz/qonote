@@ -8,7 +8,7 @@ using Qonote.Core.Domain.Entities;
 using Qonote.Core.Domain.Identity;
 using Qonote.Infrastructure.Persistence.Context;
 
-namespace Qonote.Infrastructure.Persistence.AccountDeletion;
+namespace Qonote.Infrastructure.Persistence.Operations.AccountDeletion;
 
 public sealed class AccountDeletionService : IAccountDeletionService
 {

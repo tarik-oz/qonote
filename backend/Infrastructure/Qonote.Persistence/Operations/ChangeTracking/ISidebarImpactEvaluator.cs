@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Qonote.Infrastructure.Persistence.Context;
 
-namespace Qonote.Infrastructure.Persistence.ChangeTracking;
+namespace Qonote.Infrastructure.Persistence.Operations.ChangeTracking;
 
 public interface ISidebarImpactEvaluator
 {

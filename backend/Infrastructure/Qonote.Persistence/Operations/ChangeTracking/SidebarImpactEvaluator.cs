@@ -3,7 +3,7 @@ using Qonote.Core.Domain.Common;
 using Qonote.Core.Domain.Entities;
 using Qonote.Infrastructure.Persistence.Context;
 
-namespace Qonote.Infrastructure.Persistence.ChangeTracking;
+namespace Qonote.Infrastructure.Persistence.Operations.ChangeTracking;
 
 public sealed class SidebarImpactEvaluator : ISidebarImpactEvaluator
 {

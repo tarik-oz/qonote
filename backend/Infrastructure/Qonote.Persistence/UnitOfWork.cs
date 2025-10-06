@@ -3,7 +3,7 @@ using Qonote.Core.Application.Abstractions.Data;
 using Qonote.Core.Application.Abstractions.Caching;
 using Qonote.Core.Domain.Common;
 using Qonote.Infrastructure.Persistence.Context;
-using Qonote.Infrastructure.Persistence.ChangeTracking;
+using Qonote.Infrastructure.Persistence.Operations.ChangeTracking;
 
 namespace Qonote.Infrastructure.Persistence;
 
