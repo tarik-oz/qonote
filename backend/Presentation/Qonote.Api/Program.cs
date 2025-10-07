@@ -137,7 +137,12 @@ catch (Exception ex)
 
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
-app.UseHttpsRedirection();
+// Apply HTTPS redirect only for non-webhook paths
+// Webhooks come from external services (like ngrok in dev or Lemon Squeezy in prod) and may use HTTP
+app.UseWhen(
+    context => !context.Request.Path.StartsWithSegments("/api/webhooks"),
+    appBuilder => appBuilder.UseHttpsRedirection()
+);
 
 app.UseAuthentication();
 

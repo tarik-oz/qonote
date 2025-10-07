@@ -71,7 +71,7 @@ public class NotesController : ControllerBase
 
     [HttpPatch("order")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> Reorder([FromBody] List<ReorderItem> items, CancellationToken ct)
+    public async Task<IActionResult> Reorder([FromBody] List<NoteReorderItem> items, CancellationToken ct)
     {
         await _mediator.Send(new ReorderNotesCommand(items), ct);
         return NoContent();

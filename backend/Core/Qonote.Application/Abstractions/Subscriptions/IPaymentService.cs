@@ -8,7 +8,15 @@ namespace Qonote.Core.Application.Abstractions.Subscriptions;
 public interface IPaymentService
 {
     // Lemon Squeezy API - Checkout
-    Task<string> CreateCheckoutUrlAsync(string email, string customerName, int variantId, CancellationToken cancellationToken = default);
+    Task<string> CreateCheckoutUrlAsync(
+        string email,
+        string customerName,
+        int variantId,
+        string userId,
+        int? priceId = null,
+        string? successUrl = null,
+        string? cancelUrl = null,
+        CancellationToken cancellationToken = default);
     
     // Lemon Squeezy API - Subscription Management
     Task CancelSubscriptionAsync(string externalSubscriptionId, CancellationToken cancellationToken = default);

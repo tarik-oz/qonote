@@ -17,11 +17,17 @@ public class PlanResolver : IPlanResolver
     {
         var now = DateTime.UtcNow;
 
+        // Find active subscription - EndDate can be null for ongoing subscriptions
         var activeSub = await _db.UserSubscriptions
             .AsNoTracking()
-            .Where(us => us.UserId == userId && us.StartDate <= now && us.EndDate > now && !us.IsDeleted)
+            .Where(us => us.UserId == userId 
+                && !us.IsDeleted
+                && us.StartDate <= now
+                && (us.Status == Core.Domain.Enums.SubscriptionStatus.Active 
+                    || us.Status == Core.Domain.Enums.SubscriptionStatus.Trialing)
+                && (us.EndDate == null || us.EndDate > now))
             .OrderByDescending(us => us.StartDate)
-            .Select(us => new { us.PlanId, us.Plan!.PlanCode, us.Plan!.MaxNoteCount })
+            .Select(us => new { us.PlanId, us.Plan!.PlanCode, us.Plan!.MaxNoteCount, us.Status, us.StartDate, us.EndDate })
             .FirstOrDefaultAsync(cancellationToken);
 
         if (activeSub is null)

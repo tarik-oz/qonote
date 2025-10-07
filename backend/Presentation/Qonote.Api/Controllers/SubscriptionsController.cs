@@ -1,6 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MediatR;
 using Qonote.Core.Application.Features.Subscriptions._Shared;
+using Qonote.Core.Application.Features.Subscriptions.ListPublicPlans;
+using Qonote.Core.Application.Features.Subscriptions.CreateCheckout;
+using Qonote.Core.Application.Features.Subscriptions.GetMySubscription;
+using Qonote.Core.Application.Features.Subscriptions.CancelMySubscription;
+using Qonote.Core.Application.Features.Subscriptions.ResumeMySubscription;
+using Qonote.Core.Application.Features.Subscriptions.ListMyPayments;
 using Qonote.Core.Domain.Enums;
 
 namespace Qonote.Api.Controllers;
@@ -9,11 +16,11 @@ namespace Qonote.Api.Controllers;
 [ApiController]
 public class SubscriptionsController : ControllerBase
 {
-    // TODO: Inject MediatR when implementing Command/Query handlers
-    // private readonly IMediator _mediator;
+    private readonly IMediator _mediator;
 
-    public SubscriptionsController()
+    public SubscriptionsController(IMediator mediator)
     {
+        _mediator = mediator;
     }
 
     /// <summary>
@@ -22,9 +29,8 @@ public class SubscriptionsController : ControllerBase
     [HttpGet("plans")]
     public async Task<ActionResult<List<SubscriptionPlanDto>>> GetPlans(CancellationToken cancellationToken)
     {
-        // TODO: Implement with Query Handler
-        // var result = await _mediator.Send(new GetSubscriptionPlansQuery(), cancellationToken);
-        return Ok(new List<SubscriptionPlanDto>());
+        var result = await _mediator.Send(new ListPublicPlansQuery(), cancellationToken);
+        return Ok(result);
     }
 
     /// <summary>
@@ -36,9 +42,8 @@ public class SubscriptionsController : ControllerBase
         [FromBody] CreateCheckoutRequest request,
         CancellationToken cancellationToken)
     {
-        // TODO: Implement with Command Handler
-        // var result = await _mediator.Send(new CreateCheckoutCommand(request.PlanId, request.BillingInterval), cancellationToken);
-        return Ok(new CheckoutUrlDto { CheckoutUrl = "" });
+        var result = await _mediator.Send(new CreateCheckoutCommand(request.PlanId, request.BillingInterval, request.SuccessUrl, request.CancelUrl), cancellationToken);
+        return Ok(result);
     }
 
     /// <summary>
@@ -48,9 +53,9 @@ public class SubscriptionsController : ControllerBase
     [HttpGet("my-subscription")]
     public async Task<ActionResult<UserSubscriptionDto>> GetMySubscription(CancellationToken cancellationToken)
     {
-        // TODO: Implement with Query Handler
-        // var result = await _mediator.Send(new GetMySubscriptionQuery(), cancellationToken);
-        return NotFound("No active subscription found");
+        var result = await _mediator.Send(new GetMySubscriptionQuery(), cancellationToken);
+        if (result is null) return NotFound("No active subscription found");
+        return Ok(result);
     }
 
     /// <summary>
@@ -62,8 +67,7 @@ public class SubscriptionsController : ControllerBase
         [FromBody] CancelSubscriptionRequest? request,
         CancellationToken cancellationToken)
     {
-        // TODO: Implement with Command Handler
-        // await _mediator.Send(new CancelSubscriptionCommand(request?.Reason), cancellationToken);
+        await _mediator.Send(new CancelMySubscriptionCommand(request?.CancelAtPeriodEnd ?? true, request?.Reason), cancellationToken);
         return Ok(new { message = "Subscription cancelled successfully" });
     }
 
@@ -74,8 +78,7 @@ public class SubscriptionsController : ControllerBase
     [HttpPost("resume")]
     public async Task<ActionResult> ResumeSubscription(CancellationToken cancellationToken)
     {
-        // TODO: Implement with Command Handler
-        // await _mediator.Send(new ResumeSubscriptionCommand(), cancellationToken);
+        await _mediator.Send(new ResumeMySubscriptionCommand(), cancellationToken);
         return Ok(new { message = "Subscription resumed successfully" });
     }
 
@@ -86,13 +89,12 @@ public class SubscriptionsController : ControllerBase
     [HttpGet("payments")]
     public async Task<ActionResult<List<PaymentDto>>> GetMyPayments(CancellationToken cancellationToken)
     {
-        // TODO: Implement with Query Handler
-        // var result = await _mediator.Send(new GetMyPaymentsQuery(), cancellationToken);
-        return Ok(new List<PaymentDto>());
+        var result = await _mediator.Send(new ListMyPaymentsQuery(), cancellationToken);
+        return Ok(result);
     }
 }
 
 // Request DTOs
-public record CreateCheckoutRequest(int PlanId, BillingInterval BillingInterval);
-public record CancelSubscriptionRequest(string? Reason);
+public record CreateCheckoutRequest(int PlanId, BillingInterval BillingInterval, string? SuccessUrl, string? CancelUrl);
+public record CancelSubscriptionRequest(bool CancelAtPeriodEnd, string? Reason);
 
