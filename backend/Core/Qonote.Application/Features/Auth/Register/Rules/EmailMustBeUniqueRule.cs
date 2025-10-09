@@ -18,10 +18,11 @@ public sealed class EmailMustBeUniqueRule : IBusinessRule<RegisterUserCommand>
 
     public async Task<IEnumerable<RuleViolation>> CheckAsync(RegisterUserCommand request, CancellationToken cancellationToken)
     {
-        var user = await _userManager.FindByEmailAsync(request.Email);
+        var email = request.Email?.Trim();
+        var user = string.IsNullOrWhiteSpace(email) ? null : await _userManager.FindByEmailAsync(email);
         if (user is not null)
         {
-            return new[] { new RuleViolation(nameof(request.Email), "A user with this email address already exists.") };
+            return [new RuleViolation(nameof(request.Email), "A user with this email address already exists.")];
         }
 
         return Array.Empty<RuleViolation>();

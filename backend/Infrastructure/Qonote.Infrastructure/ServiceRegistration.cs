@@ -47,20 +47,14 @@ public static class ServiceRegistration
         services.AddScoped<IFileStorageService, AzureBlobStorageService>();
         services.AddTransient<IImageService, ImageService>();
         services.AddTransient<IEmailService, AzureEmailService>();
+        services.AddSingleton<IEmailTemplateRenderer, EmailTemplateRenderer>();
         services.AddScoped<IPlanResolver, PlanResolver>();
         services.AddScoped<ILimitCheckerService, LimitCheckerService>();
         services.AddHttpClient<IPaymentService, PaymentService>(); // HttpClient for Lemon Squeezy API
         services.AddHttpClient<IYouTubeMetadataService, YouTubeMetadataService>();
 
-        services.AddIdentityCore<ApplicationUser>(options =>
-            {
-                options.Password.RequireDigit = false;
-                options.Password.RequiredLength = 4;
-                options.Password.RequireLowercase = false;
-                options.Password.RequireUppercase = false;
-                options.Password.RequireNonAlphanumeric = false;
-                options.SignIn.RequireConfirmedEmail = false;
-            })
+        services
+            .AddIdentityCore<ApplicationUser>()
             .AddRoles<ApplicationRole>()
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders()

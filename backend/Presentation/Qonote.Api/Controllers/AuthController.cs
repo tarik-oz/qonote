@@ -47,12 +47,12 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("email-confirmations")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(SendConfirmationEmailResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> SendConfirmationEmail(SendConfirmationEmailCommand command, CancellationToken ct)
     {
-        await _mediator.Send(command, ct);
-        return Ok();
+        var result = await _mediator.Send(command, ct);
+        return Ok(result);
     }
 
     [AllowAnonymous]

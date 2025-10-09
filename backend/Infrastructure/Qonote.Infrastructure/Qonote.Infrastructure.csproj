@@ -20,4 +20,8 @@
     <PackageReference Include="SkiaSharp" Version="2.88.8" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Email\Templates\**\*.html" />
+  </ItemGroup>
+
 </Project>

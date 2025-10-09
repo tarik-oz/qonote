@@ -13,6 +13,7 @@ using Qonote.Presentation.Api.Contracts;
 using System.Text.Json.Serialization;
 using Qonote.Presentation.Api.Infrastructure.Health;
 using System.Text.Json;
+using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +28,15 @@ builder.Host.UseSerilog();
 builder.Services.AddPersistenceServices(builder.Configuration);
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
+
+builder.Services.Configure<IdentityOptions>(options =>
+{
+    options.Password.RequiredLength = 8;
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireNonAlphanumeric = false;
+});
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

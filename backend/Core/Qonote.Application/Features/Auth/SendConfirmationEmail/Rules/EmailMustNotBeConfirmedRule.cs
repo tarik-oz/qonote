@@ -18,11 +18,12 @@ public sealed class EmailMustNotBeConfirmedRule : IBusinessRule<SendConfirmation
 
     public async Task<IEnumerable<RuleViolation>> CheckAsync(SendConfirmationEmailCommand request, CancellationToken cancellationToken)
     {
-        var user = await _userManager.FindByEmailAsync(request.Email);
+        var email = request.Email?.Trim();
+        var user = await _userManager.FindByEmailAsync(email!);
         // We assume UserMustExistByEmailRule has already run, so user is not null here.
         if (user is not null && user.EmailConfirmed)
         {
-            return new[] { new RuleViolation(nameof(request.Email), "This email address has already been confirmed.") };
+            return [new RuleViolation(nameof(request.Email), "This email address has already been confirmed.")];
         }
 
         return Array.Empty<RuleViolation>();

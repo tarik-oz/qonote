@@ -18,11 +18,12 @@ public sealed class ConfirmationCodeMustNotBeExpiredRule : IBusinessRule<Confirm
 
     public async Task<IEnumerable<RuleViolation>> CheckAsync(ConfirmEmailCommand request, CancellationToken cancellationToken)
     {
-        var user = await _userManager.FindByEmailAsync(request.Email);
+        var email = request.Email?.Trim();
+        var user = await _userManager.FindByEmailAsync(email!);
         // We assume UserMustExistRule has already run, so user is not null here.
         if (user is not null && user.EmailConfirmationCodeExpiry < DateTime.UtcNow)
         {
-            return new[] { new RuleViolation(nameof(request.Code), "Confirmation code has expired.") };
+            return [new RuleViolation(nameof(request.Code), "Confirmation code has expired.")];
         }
 
         return Array.Empty<RuleViolation>();
