@@ -18,13 +18,14 @@ public sealed class UserMustBeConfirmedRule : IBusinessRule<LoginCommand>
 
     public async Task<IEnumerable<RuleViolation>> CheckAsync(LoginCommand request, CancellationToken cancellationToken)
     {
-        var user = await _userManager.FindByEmailAsync(request.Email);
+        var normalizedEmail = request.Email?.Trim();
+        var user = await _userManager.FindByEmailAsync(normalizedEmail!);
 
         // This rule runs after user and password have been validated.
         // We can assume user is not null here.
         if (user is not null && !user.EmailConfirmed)
         {
-            return new[] { new RuleViolation("Auth.Login", "Please confirm your email before logging in.") };
+            return [new RuleViolation("Auth.Login", "Please confirm your email before logging in.")];
         }
 
         return Array.Empty<RuleViolation>();

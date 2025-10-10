@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Qonote.Core.Application.Abstractions.Data;
 using Qonote.Core.Application.Abstractions.Security;
 using Qonote.Core.Application.Exceptions;
@@ -14,6 +15,7 @@ public sealed class UpdateBlockCommandHandler : IRequestHandler<UpdateBlockComma
     private readonly IWriteRepository<Block, Guid> _blockWriter;
     private readonly IUnitOfWork _uow;
     private readonly ICurrentUserService _currentUser;
+    private readonly ILogger<UpdateBlockCommandHandler> _logger;
 
     public UpdateBlockCommandHandler(
         IReadRepository<Block, Guid> blockReader,
@@ -21,7 +23,8 @@ public sealed class UpdateBlockCommandHandler : IRequestHandler<UpdateBlockComma
         IReadRepository<Note, int> noteReader,
         IWriteRepository<Block, Guid> blockWriter,
         IUnitOfWork uow,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        ILogger<UpdateBlockCommandHandler> logger)
     {
         _blockReader = blockReader;
         _sectionReader = sectionReader;
@@ -29,6 +32,7 @@ public sealed class UpdateBlockCommandHandler : IRequestHandler<UpdateBlockComma
         _blockWriter = blockWriter;
         _uow = uow;
         _currentUser = currentUser;
+        _logger = logger;
     }
 
     public async Task Handle(UpdateBlockCommand request, CancellationToken cancellationToken)
@@ -57,5 +61,6 @@ public sealed class UpdateBlockCommandHandler : IRequestHandler<UpdateBlockComma
 
         _blockWriter.Update(block);
         await _uow.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("Block updated. BlockId={BlockId} UserId={UserId}", block.Id, userId);
     }
 }

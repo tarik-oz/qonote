@@ -11,7 +11,7 @@ public sealed class ChangePasswordCommandValidator : AbstractValidator<ChangePas
 
         RuleFor(p => p.NewPassword)
             .NotEmpty().WithMessage("New password cannot be empty.")
-            .MinimumLength(6).WithMessage("New password must be at least 6 characters long.")
+            .MinimumLength(8).WithMessage("New password must be at least 8 characters long.")
             .NotEqual(p => p.OldPassword).WithMessage("New password cannot be the same as the old password.");
 
         RuleFor(p => p.ConfirmNewPassword)

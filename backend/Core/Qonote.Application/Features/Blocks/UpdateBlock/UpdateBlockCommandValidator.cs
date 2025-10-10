@@ -7,6 +7,8 @@ public sealed class UpdateBlockCommandValidator : AbstractValidator<UpdateBlockC
     public UpdateBlockCommandValidator()
     {
         RuleFor(x => x.Id).NotEmpty();
-        RuleFor(x => x.Content).MaximumLength(5000);
+        RuleFor(x => x.Content)
+            .Must(c => c is null || c.Trim().Length <= 5000)
+            .WithMessage("Content must not exceed 5000 characters.");
     }
 }

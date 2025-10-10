@@ -25,7 +25,7 @@ public sealed class UserMustExistRule<TRequest> : IBusinessRule<TRequest> where 
         var userId = _currentUserService.UserId;
         if (string.IsNullOrWhiteSpace(userId) || await _userManager.FindByIdAsync(userId) is null)
         {
-            return new[] { new RuleViolation("User", "Authenticated user not found.") };
+            return [new RuleViolation("User", "Authenticated user not found.")];
         }
         return Array.Empty<RuleViolation>();
     }

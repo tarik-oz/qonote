@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using Qonote.Core.Application.Abstractions.Security;
 using Qonote.Core.Application.Exceptions;
 using Qonote.Core.Domain.Identity;
@@ -10,11 +11,13 @@ public sealed class ChangePasswordCommandHandler : IRequestHandler<ChangePasswor
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ICurrentUserService _currentUser;
+    private readonly ILogger<ChangePasswordCommandHandler> _logger;
 
-    public ChangePasswordCommandHandler(UserManager<ApplicationUser> userManager, ICurrentUserService currentUser)
+    public ChangePasswordCommandHandler(UserManager<ApplicationUser> userManager, ICurrentUserService currentUser, ILogger<ChangePasswordCommandHandler> logger)
     {
         _userManager = userManager;
         _currentUser = currentUser;
+        _logger = logger;
     }
 
     public async Task<Unit> Handle(ChangePasswordCommand request, CancellationToken cancellationToken)
@@ -27,6 +30,8 @@ public sealed class ChangePasswordCommandHandler : IRequestHandler<ChangePasswor
         {
             throw new ValidationException(result.Errors.Select(e => new FluentValidation.Results.ValidationFailure(e.Code, e.Description)));
         }
+
+        _logger.LogInformation("Password changed successfully. UserId={UserId}", user!.Id);
 
         return Unit.Value;
     }

@@ -21,26 +21,12 @@ public sealed class OldPasswordMustBeCorrectRule : IBusinessRule<ChangePasswordC
 
     public async Task<IEnumerable<RuleViolation>> CheckAsync(ChangePasswordCommand request, CancellationToken cancellationToken)
     {
-        var violations = new List<RuleViolation>();
-        if (string.IsNullOrWhiteSpace(_currentUser.UserId))
-        {
-            // User existence is validated elsewhere; no violation here
-            return violations;
-        }
-
         var user = await _userManager.FindByIdAsync(_currentUser.UserId!);
-        if (user == null)
-        {
-            // Let UserMustExistRule handle this
-            return violations;
-        }
-
-        var isPasswordCorrect = await _userManager.CheckPasswordAsync(user, request.OldPassword);
+        var isPasswordCorrect = await _userManager.CheckPasswordAsync(user!, request.OldPassword);
         if (!isPasswordCorrect)
         {
-            violations.Add(new RuleViolation(nameof(request.OldPassword), "The current password provided is incorrect."));
+            return [new RuleViolation(nameof(request.OldPassword), "The current password provided is incorrect.")];
         }
-
-        return violations;
+        return Array.Empty<RuleViolation>();
     }
 }

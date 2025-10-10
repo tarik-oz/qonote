@@ -1,9 +1,9 @@
 using AutoMapper;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using Qonote.Core.Application.Abstractions.Authentication;
 using Qonote.Core.Application.Abstractions.Factories;
-using Qonote.Core.Application.Abstractions.Storage;
 using Qonote.Core.Application.Abstractions.Media;
 using Qonote.Core.Application.Exceptions;
 using Qonote.Core.Application.Features.Auth._Shared;
@@ -16,40 +16,35 @@ public sealed class ExternalLoginCommandHandler : IRequestHandler<ExternalLoginC
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILoginResponseFactory _loginResponseFactory;
     private readonly IGoogleAuthService _googleAuthService;
-    private readonly IFileStorageService _fileStorageService;
     private readonly IImageService _imageService;
-    private readonly HttpClient _httpClient;
     private readonly IMapper _mapper;
+    private readonly ILogger<ExternalLoginCommandHandler> _logger;
 
     public ExternalLoginCommandHandler(
         UserManager<ApplicationUser> userManager,
         ILoginResponseFactory loginResponseFactory,
         IGoogleAuthService googleAuthService,
-        IFileStorageService fileStorageService,
         IImageService imageService,
-        HttpClient httpClient,
-        IMapper mapper)
+        IMapper mapper,
+        ILogger<ExternalLoginCommandHandler> logger)
     {
         _userManager = userManager;
         _loginResponseFactory = loginResponseFactory;
         _googleAuthService = googleAuthService;
-        _fileStorageService = fileStorageService;
         _imageService = imageService;
-        _httpClient = httpClient;
         _mapper = mapper;
+        _logger = logger;
     }
 
     public async Task<LoginResponseDto> Handle(ExternalLoginCommand request, CancellationToken cancellationToken)
     {
-        if (request.Provider.ToLower() != "google")
-        {
-            throw new ValidationException(new[] { new FluentValidation.Results.ValidationFailure("Provider", "Only Google provider is supported.") });
-        }
+        var code = request.Code.Trim();
+        var provider = request.Provider.Trim();
 
         // Use configured RedirectUri from settings when not provided explicitly
-        var userInfo = await _googleAuthService.ExchangeCodeForUserInfoAsync(request.Code, redirectUri: string.Empty);
+        var userInfo = await _googleAuthService.ExchangeCodeForUserInfoAsync(code, redirectUri: string.Empty);
 
-        var user = await _userManager.FindByEmailAsync(userInfo.Email);
+        var user = await _userManager.FindByEmailAsync(userInfo.Email.Trim());
         if (user is null)
         {
             var newUser = _mapper.Map<ApplicationUser>(userInfo);
@@ -73,6 +68,8 @@ public sealed class ExternalLoginCommandHandler : IRequestHandler<ExternalLoginC
             user = newUser;
         }
 
-        return await _loginResponseFactory.CreateAsync(user);
+        var response = await _loginResponseFactory.CreateAsync(user);
+        _logger.LogInformation("External login succeeded. UserId={UserId} Provider={Provider}", user.Id, provider);
+        return response;
     }
 }

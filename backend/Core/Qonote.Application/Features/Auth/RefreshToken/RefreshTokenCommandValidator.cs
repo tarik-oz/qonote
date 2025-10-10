@@ -1,4 +1,5 @@
 using FluentValidation;
+using Qonote.Core.Application.Extensions;
 
 namespace Qonote.Core.Application.Features.Auth.RefreshToken;
 
@@ -6,7 +7,10 @@ public sealed class RefreshTokenCommandValidator : AbstractValidator<RefreshToke
 {
     public RefreshTokenCommandValidator()
     {
-        RuleFor(x => x.AccessToken).NotEmpty();
-        RuleFor(x => x.RefreshToken).NotEmpty();
+        RuleFor(x => x.AccessToken)
+            .TrimmedNotEmpty("Access token is required.");
+
+        RuleFor(x => x.RefreshToken)
+            .TrimmedNotEmpty("Refresh token is required.");
     }
 }

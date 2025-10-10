@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using Qonote.Core.Application.Abstractions.Security;
 using Qonote.Core.Application.Abstractions.Storage;
 using Qonote.Core.Application.Exceptions;
@@ -17,6 +18,7 @@ public sealed class UpdateProfilePictureCommandHandler : IRequestHandler<UpdateP
     private readonly IFileStorageService _fileStorageService;
     private readonly IImageService _imageService;
     private readonly ICacheInvalidationService _cacheInvalidation;
+    private readonly ILogger<UpdateProfilePictureCommandHandler> _logger;
     private const string ProfilePicturesContainer = "profile-pictures";
 
     public UpdateProfilePictureCommandHandler(
@@ -24,13 +26,15 @@ public sealed class UpdateProfilePictureCommandHandler : IRequestHandler<UpdateP
         ICurrentUserService currentUserService,
         IFileStorageService fileStorageService,
         IImageService imageService,
-        ICacheInvalidationService cacheInvalidation)
+        ICacheInvalidationService cacheInvalidation,
+        ILogger<UpdateProfilePictureCommandHandler> logger)
     {
         _userManager = userManager;
         _currentUserService = currentUserService;
         _fileStorageService = fileStorageService;
         _imageService = imageService;
         _cacheInvalidation = cacheInvalidation;
+        _logger = logger;
     }
 
     public async Task<string> Handle(UpdateProfilePictureCommand request, CancellationToken cancellationToken)
@@ -56,6 +60,7 @@ public sealed class UpdateProfilePictureCommandHandler : IRequestHandler<UpdateP
         // Invalidate /api/me cache so next fetch shows new profile picture
         await _cacheInvalidation.RemoveMeAsync(_currentUserService.UserId!, cancellationToken);
 
+        _logger.LogInformation("Profile picture updated. UserId={UserId}", user.Id);
         return newImageUrl;
     }
 }

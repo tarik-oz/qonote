@@ -22,7 +22,7 @@ public sealed class UserMustExistByEmailRule<TRequest> : IBusinessRule<TRequest>
         var user = await _userManager.FindByEmailAsync(request.Email);
         if (user is null)
         {
-            return new[] { new RuleViolation(typeof(TRequest).Name.Replace("Command", ""), "User not found.") };
+            return [new RuleViolation(typeof(TRequest).Name.Replace("Command", ""), "User not found.")];
         }
 
         return Array.Empty<RuleViolation>();

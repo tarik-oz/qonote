@@ -18,16 +18,18 @@ public sealed class UserAndPasswordMustBeValidRule : IBusinessRule<LoginCommand>
 
     public async Task<IEnumerable<RuleViolation>> CheckAsync(LoginCommand request, CancellationToken cancellationToken)
     {
-        var user = await _userManager.FindByEmailAsync(request.Email);
+        var normalizedEmail = request.Email?.Trim();
+
+        var user = await _userManager.FindByEmailAsync(normalizedEmail!);
         if (user is null)
         {
-            return new[] { new RuleViolation("Auth.Login", "Invalid email or password.") };
+            return [new RuleViolation("Auth.Login", "Invalid email or password.")];
         }
 
         var passwordValid = await _userManager.CheckPasswordAsync(user, request.Password);
         if (!passwordValid)
         {
-            return new[] { new RuleViolation("Auth.Login", "Invalid email or password.") };
+            return [new RuleViolation("Auth.Login", "Invalid email or password.")];
         }
 
         return Array.Empty<RuleViolation>();

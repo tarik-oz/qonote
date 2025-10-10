@@ -36,7 +36,6 @@ public sealed class GetMyPlanQueryHandler : IRequestHandler<GetMyPlanQuery, MyPl
 
         var effective = await _planResolver.GetEffectivePlanAsync(userId, cancellationToken);
 
-        // Optional: fetch active subscription window (if any)
         var subs = await _userSubReader.GetAllAsync(us => us.UserId == userId && us.StartDate <= now && us.EndDate > now, cancellationToken);
         var sub = subs.OrderByDescending(s => s.StartDate).FirstOrDefault();
         string planName;

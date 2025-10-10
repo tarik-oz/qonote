@@ -1,11 +1,12 @@
 namespace Qonote.Core.Application.Features.Users._Shared;
 
-public class UserDto
+public sealed record UserDto(
+    string Id,
+    string Name,
+    string Surname,
+    string Email,
+    string? ProfileImageUrl
+)
 {
-    public string Id { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public string Surname { get; set; } = string.Empty;
     public string FullName => $"{Name} {Surname}".Trim();
-    public string Email { get; set; } = string.Empty;
-    public string? ProfileImageUrl { get; set; }
 }

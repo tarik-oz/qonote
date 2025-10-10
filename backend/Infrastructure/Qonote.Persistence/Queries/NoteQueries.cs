@@ -26,6 +26,7 @@ public sealed class NoteQueries : INoteQueries
             .AsNoTracking()
             .Where(n => !n.IsDeleted && n.UserId == userId && n.NoteGroupId == groupId)
             .OrderBy(n => n.Order)
+            .ThenBy(n => n.Id)
             .AsQueryable();
 
         if (offset is int o && o > 0)
@@ -48,6 +49,7 @@ public sealed class NoteQueries : INoteQueries
             .AsNoTracking()
             .Where(n => !n.IsDeleted && n.UserId == userId && n.NoteGroupId == null)
             .OrderBy(n => n.Order)
+            .ThenBy(n => n.Id)
             .AsQueryable();
 
         if (offset is int o && o > 0)
@@ -86,13 +88,13 @@ public sealed class NoteQueries : INoteQueries
 
         // Sanitize query: remove special characters and convert to tsquery format
         var sanitizedQuery = SanitizeSearchQuery(query);
-        
+
         if (string.IsNullOrWhiteSpace(sanitizedQuery))
         {
-            return new SearchNotesResponse 
-            { 
-                Results = new List<SearchResultDto>(), 
-                TotalCount = 0 
+            return new SearchNotesResponse
+            {
+                Results = new List<SearchResultDto>(),
+                TotalCount = 0
             };
         }
 
@@ -120,7 +122,7 @@ public sealed class NoteQueries : INoteQueries
         ";
 
         var skip = (pageNumber - 1) * pageSize;
-        
+
         var results = await _db.Database
             .SqlQueryRaw<SearchResultRaw>(sql, tsQuery, userId, pageSize, skip)
             .ToListAsync(cancellationToken);
@@ -133,11 +135,11 @@ public sealed class NoteQueries : INoteQueries
               AND n.""IsDeleted"" = false
               AND n.""SearchVector"" @@ to_tsquery('english', {1})
         ";
-        
+
         var countResult = await _db.Database
             .SqlQueryRaw<CountResult>(countSql, userId, tsQuery)
             .FirstOrDefaultAsync(cancellationToken);
-        
+
         var totalCount = countResult?.count ?? 0;
 
         // Get snippets for each note (from Sections/Blocks)
@@ -162,8 +164,8 @@ public sealed class NoteQueries : INoteQueries
     }
 
     private async Task<Dictionary<int, List<SnippetDto>>> GetSnippetsForNotes(
-        List<int> noteIds, 
-        string tsQuery, 
+        List<int> noteIds,
+        string tsQuery,
         CancellationToken cancellationToken)
     {
         if (!noteIds.Any())

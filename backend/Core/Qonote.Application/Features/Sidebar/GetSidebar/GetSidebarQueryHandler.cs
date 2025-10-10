@@ -11,26 +11,20 @@ namespace Qonote.Core.Application.Features.Sidebar.GetSidebar;
 public sealed class GetSidebarQueryHandler : IRequestHandler<GetSidebarQuery, SidebarDto>
 {
     private readonly IReadRepository<NoteGroup, int> _groupReader;
-    private readonly IReadRepository<Note, int> _noteReader;
     private readonly ICurrentUserService _currentUser;
-    private readonly IMapper _mapper;
     private readonly INoteQueries _noteQueries;
     private readonly ICacheService _cache;
     private readonly ICacheTtlProvider _ttl;
 
     public GetSidebarQueryHandler(
         IReadRepository<NoteGroup, int> groupReader,
-        IReadRepository<Note, int> noteReader,
         ICurrentUserService currentUser,
-        IMapper mapper,
         INoteQueries noteQueries,
         ICacheService cache,
         ICacheTtlProvider ttl)
     {
         _groupReader = groupReader;
-        _noteReader = noteReader;
         _currentUser = currentUser;
-        _mapper = mapper;
         _noteQueries = noteQueries;
         _cache = cache;
         _ttl = ttl;
@@ -40,60 +34,86 @@ public sealed class GetSidebarQueryHandler : IRequestHandler<GetSidebarQuery, Si
     {
         var userId = _currentUser.UserId!; // guaranteed by UserMustExistRule
 
+        // Cache key only by user; we will slice offset/limit in-memory after cache hit.
         var key = $"qonote:sidebar:{userId}";
 
-        var dto = await _cache.GetOrSetAsync(key, async ct =>
+        var cached = await _cache.GetOrSetAsync(key, async ct =>
+        {
+            // Build full, ordered sidebar state for the user
+            var groups = await _groupReader.GetAllAsync(g => g.UserId == userId, ct);
+            if (groups.Count > 0)
             {
-                // Determine mode
-                var groups = await _groupReader.GetAllAsync(g => g.UserId == userId, ct);
-                if (groups.Count > 0)
-                {
-                    // grouped mode
-                    var orderedGroups = groups
-                        .OrderBy(g => g.Order)
-                        .ToList();
+                return await BuildGroupedSidebarAsync(groups, userId, ct);
+            }
+            else
+            {
+                return await BuildFlatSidebarAsync(userId, ct);
+            }
+        }, _ttl.GetSidebarTtl(), cancellationToken);
 
-                    var groupDtos = new List<GroupItemDto>(orderedGroups.Count);
-                    foreach (var g in orderedGroups)
-                    {
-                        // NoteCount and preview thumbnails
-                        var orderedNotes = await _noteQueries.GetOrderedNotesForGroupAsync(g.Id, userId, offset: null, limit: null, ct);
+        // Apply offset/limit to the notes list if provided (only relevant for ungrouped list in the UI)
+        if (cached is { Notes: { } notes } && (request.Offset is int || request.Limit is int))
+        {
+            var o = request.Offset.GetValueOrDefault();
+            var l = request.Limit.GetValueOrDefault();
+            var sliced = notes
+                .Skip(o > 0 ? o : 0)
+                .Take(l > 0 ? l : int.MaxValue)
+                .ToList();
 
-                        var thumbnails = orderedNotes
-                            .Where(n => !string.IsNullOrWhiteSpace(n.ThumbnailUrl))
-                            .Take(3)
-                            .Select(n => n.ThumbnailUrl)
-                            .ToList();
+            return new SidebarDto(cached.Mode, cached.Groups, sliced);
+        }
 
-                        var dto = _mapper.Map<GroupItemDto>(g);
-                        dto.Id = g.Id; // ensure explicit id set
-                        dto.NoteCount = orderedNotes.Count;
-                        dto.PreviewThumbnails = thumbnails;
-                        groupDtos.Add(dto);
-                    }
+        return cached!;
+    }
 
-                    // Include ungrouped notes
-                    var ungroupedNotes = await _noteQueries.GetOrderedUngroupedNotesAsync(userId, request.Offset, request.Limit, ct);
+    private async Task<SidebarDto> BuildGroupedSidebarAsync(IList<NoteGroup> groups, string userId, CancellationToken ct)
+    {
+        var orderedGroups = groups
+            .OrderBy(g => g.Order)
+            .ThenBy(g => g.Id)
+            .ToList();
 
-                    return new SidebarDto
-                    {
-                        Mode = "grouped",
-                        Groups = groupDtos,
-                        Notes = ungroupedNotes
-                    };
-                }
-                else
-                {
-                    // flat mode
-                    var noteDtos = await _noteQueries.GetOrderedUngroupedNotesAsync(userId, request.Offset, request.Limit, ct);
+        var groupDtos = new List<GroupItemDto>(orderedGroups.Count);
+        foreach (var g in orderedGroups)
+        {
+            // NoteCount and preview thumbnails
+            var orderedNotes = await _noteQueries.GetOrderedNotesForGroupAsync(g.Id, userId, offset: null, limit: null, ct);
 
-                    return new SidebarDto
-                    {
-                        Mode = "flat",
-                        Notes = noteDtos
-                    };
-                }
-            }, _ttl.GetSidebarTtl(), cancellationToken);
-        return dto!;
+            var thumbnails = orderedNotes
+                .Where(n => !string.IsNullOrWhiteSpace(n.ThumbnailUrl))
+                .Take(3)
+                .Select(n => n.ThumbnailUrl)
+                .ToList();
+
+            var dto = new GroupItemDto(
+                g.Id,
+                g.Name,
+                g.Order,
+                orderedNotes.Count,
+                thumbnails
+            );
+            groupDtos.Add(dto);
+        }
+
+        // Include all ungrouped notes; pagination will be applied in-memory based on the request
+        var ungroupedNotes = await _noteQueries.GetOrderedUngroupedNotesAsync(userId, offset: null, limit: null, ct);
+
+        return new SidebarDto(
+            "grouped",
+            groupDtos,
+            ungroupedNotes
+        );
+    }
+
+    private async Task<SidebarDto> BuildFlatSidebarAsync(string userId, CancellationToken ct)
+    {
+        var noteDtos = await _noteQueries.GetOrderedUngroupedNotesAsync(userId, offset: null, limit: null, ct);
+
+        return new SidebarDto(
+            "flat",
+            null,
+            noteDtos
+        );
     }
 }

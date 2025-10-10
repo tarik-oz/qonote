@@ -23,18 +23,12 @@ public sealed class LocalPasswordRequiredRule : IBusinessRule<ChangePasswordComm
 
     public async Task<IEnumerable<RuleViolation>> CheckAsync(ChangePasswordCommand request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(_currentUser.UserId))
-            return new[] { new RuleViolation("User", "Authenticated user not found.") };
-
         var user = await _userManager.FindByIdAsync(_currentUser.UserId!);
-        if (user is null)
-            return new[] { new RuleViolation("User", "Authenticated user not found.") };
-
         // If user has no local password (external-only), block password change
-        var hasPassword = await _userManager.HasPasswordAsync(user);
+        var hasPassword = await _userManager.HasPasswordAsync(user!);
         if (!hasPassword)
         {
-            return new[] { new RuleViolation("Password", "Password change is not available for external-login accounts.") };
+            return [new RuleViolation("Password", "Password change is not available for external-login accounts.")];
         }
 
         return Array.Empty<RuleViolation>();
