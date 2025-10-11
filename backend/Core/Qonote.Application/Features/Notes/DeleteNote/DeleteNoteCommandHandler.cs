@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Qonote.Core.Application.Abstractions.Data;
 using Qonote.Core.Application.Abstractions.Security;
 using Qonote.Core.Application.Exceptions;
@@ -18,6 +19,7 @@ public sealed class DeleteNoteCommandHandler : IRequestHandler<DeleteNoteCommand
     private readonly IUnitOfWork _uow;
     private readonly ICurrentUserService _currentUser;
     private readonly IFileStorageService _fileStorage;
+    private readonly ILogger<DeleteNoteCommandHandler> _logger;
 
     public DeleteNoteCommandHandler(
         IReadRepository<Note, int> reader,
@@ -28,7 +30,8 @@ public sealed class DeleteNoteCommandHandler : IRequestHandler<DeleteNoteCommand
         IWriteRepository<Block, Guid> blockWriter,
         IUnitOfWork uow,
         ICurrentUserService currentUser,
-        IFileStorageService fileStorage)
+        IFileStorageService fileStorage,
+        ILogger<DeleteNoteCommandHandler> logger)
     {
         _reader = reader;
         _writer = writer;
@@ -39,6 +42,7 @@ public sealed class DeleteNoteCommandHandler : IRequestHandler<DeleteNoteCommand
         _uow = uow;
         _currentUser = currentUser;
         _fileStorage = fileStorage;
+        _logger = logger;
     }
 
     public async Task Handle(DeleteNoteCommand request, CancellationToken cancellationToken)
@@ -66,10 +70,13 @@ public sealed class DeleteNoteCommandHandler : IRequestHandler<DeleteNoteCommand
         _writer.Delete(note);
         await _uow.SaveChangesAsync(cancellationToken);
 
+        _logger.LogInformation("Note deleted. NoteId={NoteId} UserId={UserId}", note.Id, userId);
+
         // Best-effort: delete thumbnail blob
         if (!string.IsNullOrWhiteSpace(note.ThumbnailUrl))
         {
             await _fileStorage.DeleteAsync(note.ThumbnailUrl, "thumbnails");
+            _logger.LogInformation("Note thumbnail deleted from storage. NoteId={NoteId} UserId={UserId}", note.Id, userId);
         }
     }
 }

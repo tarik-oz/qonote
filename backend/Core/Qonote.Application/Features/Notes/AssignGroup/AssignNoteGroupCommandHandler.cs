@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Qonote.Core.Application.Abstractions.Data;
 using Qonote.Core.Application.Abstractions.Security;
 using Qonote.Core.Application.Exceptions;
@@ -13,19 +14,22 @@ public sealed class AssignNoteGroupCommandHandler : IRequestHandler<AssignNoteGr
     private readonly IWriteRepository<Note, int> _noteWriter;
     private readonly IUnitOfWork _uow;
     private readonly ICurrentUserService _currentUser;
+    private readonly ILogger<AssignNoteGroupCommandHandler> _logger;
 
     public AssignNoteGroupCommandHandler(
         IReadRepository<Note, int> noteReader,
         IReadRepository<NoteGroup, int> groupReader,
         IWriteRepository<Note, int> noteWriter,
         IUnitOfWork uow,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        ILogger<AssignNoteGroupCommandHandler> logger)
     {
         _noteReader = noteReader;
         _groupReader = groupReader;
         _noteWriter = noteWriter;
         _uow = uow;
         _currentUser = currentUser;
+        _logger = logger;
     }
 
     public async Task Handle(AssignNoteGroupCommand request, CancellationToken cancellationToken)
@@ -50,5 +54,7 @@ public sealed class AssignNoteGroupCommandHandler : IRequestHandler<AssignNoteGr
         note.NoteGroupId = request.NoteGroupId; // can be null to unassign
         _noteWriter.Update(note);
         await _uow.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Note group assignment changed. NoteId={NoteId} UserId={UserId} GroupId={GroupId}", note.Id, userId, request.NoteGroupId);
     }
 }

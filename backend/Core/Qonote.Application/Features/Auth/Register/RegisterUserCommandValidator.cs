@@ -10,12 +10,12 @@ public class RegisterUserCommandValidator : AbstractValidator<RegisterUserComman
         RuleFor(x => x.Name)
             .TrimmedNotEmpty("Name is required.")
             .TrimmedMaxLength(50, "Name must not exceed 50 characters.")
-            .TrimmedMatches(@"^[a-zA-Z' ]+$", "Name can only contain letters, spaces, and apostrophes.");
+            .TrimmedMatches(@"^[\p{L}' ]+$", "Name can only contain letters (including Turkish), spaces, and apostrophes.");
 
         RuleFor(x => x.Surname)
             .TrimmedNotEmpty("Surname is required.")
             .TrimmedMaxLength(50, "Surname must not exceed 50 characters.")
-            .TrimmedMatches(@"^[a-zA-Z' ]+$", "Surname can only contain letters, spaces, and apostrophes.");
+            .TrimmedMatches(@"^[\p{L}' ]+$", "Surname can only contain letters (including Turkish), spaces, and apostrophes.");
 
         RuleFor(x => x.Email)
             .TrimmedNotEmpty("Email is required.")

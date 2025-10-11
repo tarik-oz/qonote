@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Qonote.Core.Application.Abstractions.Data;
 using Qonote.Core.Application.Abstractions.Security;
 using Qonote.Core.Application.Exceptions;
@@ -15,6 +16,7 @@ public sealed class DeleteSectionCommandHandler : IRequestHandler<DeleteSectionC
     private readonly IWriteRepository<Block, Guid> _blockWriter;
     private readonly IUnitOfWork _uow;
     private readonly ICurrentUserService _currentUser;
+    private readonly ILogger<DeleteSectionCommandHandler> _logger;
 
     public DeleteSectionCommandHandler(
         IReadRepository<Section, int> sectionReader,
@@ -23,7 +25,8 @@ public sealed class DeleteSectionCommandHandler : IRequestHandler<DeleteSectionC
         IWriteRepository<Section, int> sectionWriter,
         IWriteRepository<Block, Guid> blockWriter,
         IUnitOfWork uow,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        ILogger<DeleteSectionCommandHandler> logger)
     {
         _sectionReader = sectionReader;
         _blockReader = blockReader;
@@ -32,6 +35,7 @@ public sealed class DeleteSectionCommandHandler : IRequestHandler<DeleteSectionC
         _blockWriter = blockWriter;
         _uow = uow;
         _currentUser = currentUser;
+        _logger = logger;
     }
 
     public async Task Handle(DeleteSectionCommand request, CancellationToken cancellationToken)
@@ -83,5 +87,6 @@ public sealed class DeleteSectionCommandHandler : IRequestHandler<DeleteSectionC
 
         _sectionWriter.Delete(section);
         await _uow.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("Section deleted {SectionId} for Note {NoteId} by {UserId}", section.Id, note.Id, userId);
     }
 }

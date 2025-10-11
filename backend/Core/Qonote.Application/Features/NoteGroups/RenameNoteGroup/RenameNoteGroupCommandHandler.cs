@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Qonote.Core.Application.Abstractions.Data;
 using Qonote.Core.Application.Abstractions.Security;
 using Qonote.Core.Application.Exceptions;
@@ -12,17 +13,20 @@ public sealed class RenameNoteGroupCommandHandler : IRequestHandler<RenameNoteGr
     private readonly IWriteRepository<NoteGroup, int> _writer;
     private readonly IUnitOfWork _uow;
     private readonly ICurrentUserService _currentUser;
+    private readonly ILogger<RenameNoteGroupCommandHandler> _logger;
 
     public RenameNoteGroupCommandHandler(
         IReadRepository<NoteGroup, int> reader,
         IWriteRepository<NoteGroup, int> writer,
         IUnitOfWork uow,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        ILogger<RenameNoteGroupCommandHandler> logger)
     {
         _reader = reader;
         _writer = writer;
         _uow = uow;
         _currentUser = currentUser;
+        _logger = logger;
     }
 
     public async Task Handle(RenameNoteGroupCommand request, CancellationToken cancellationToken)
@@ -37,5 +41,6 @@ public sealed class RenameNoteGroupCommandHandler : IRequestHandler<RenameNoteGr
         group.Name = request.Title.Trim();
         _writer.Update(group);
         await _uow.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("Note group renamed {GroupId} by {UserId}", group.Id, userId);
     }
 }

@@ -1,7 +1,7 @@
 using MediatR;
 using Qonote.Core.Application.Abstractions.Requests;
 
-namespace Qonote.Core.Application.Features.Sections.SetUiStateBatch;
+namespace Qonote.Core.Application.Features.Sections.SetSectionUiStateBatch;
 
 public sealed record SetSectionUiStateBatchCommand(
     int NoteId,
@@ -13,5 +13,3 @@ public sealed class SetItem
     public int SectionId { get; set; }
     public bool IsCollapsed { get; set; }
 }
-
-

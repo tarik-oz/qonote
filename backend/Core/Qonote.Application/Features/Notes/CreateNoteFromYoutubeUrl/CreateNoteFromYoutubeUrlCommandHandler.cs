@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Qonote.Core.Application.Abstractions.Data;
 using Qonote.Core.Application.Abstractions.Security;
 using Qonote.Core.Application.Abstractions.Factories;
@@ -21,6 +22,7 @@ public sealed class CreateNoteFromYoutubeUrlCommandHandler : IRequestHandler<Cre
     private readonly IImageService _imageService;
     private readonly INoteFactory _noteFactory;
     private readonly ILimitCheckerService _limitChecker;
+    private readonly ILogger<CreateNoteFromYoutubeUrlCommandHandler> _logger;
 
     public CreateNoteFromYoutubeUrlCommandHandler(
         IWriteRepository<Note, int> noteWriteRepository,
@@ -30,7 +32,8 @@ public sealed class CreateNoteFromYoutubeUrlCommandHandler : IRequestHandler<Cre
         IYouTubeMetadataService youTube,
         IImageService imageService,
         INoteFactory noteFactory,
-        ILimitCheckerService limitChecker)
+        ILimitCheckerService limitChecker,
+        ILogger<CreateNoteFromYoutubeUrlCommandHandler> logger)
     {
         _noteWriteRepository = noteWriteRepository;
         _noteReadRepository = noteReadRepository;
@@ -40,6 +43,7 @@ public sealed class CreateNoteFromYoutubeUrlCommandHandler : IRequestHandler<Cre
         _imageService = imageService;
         _noteFactory = noteFactory;
         _limitChecker = limitChecker;
+        _logger = logger;
     }
 
     public async Task<int> Handle(CreateNoteFromYoutubeUrlCommand request, CancellationToken cancellationToken)
@@ -65,14 +69,24 @@ public sealed class CreateNoteFromYoutubeUrlCommandHandler : IRequestHandler<Cre
         // Create entity via factory (business rules already validate title uniqueness incl. derived)
         var note = _noteFactory.CreateFromYouTubeMetadata(meta, userId, request.YoutubeUrl, trimmedCustomTitle);
 
-        // Set Order: new notes go to the end
+        // Set Order: put new note at the top of ungrouped list without shifting others
         var existingNotes = await _noteReadRepository.GetAllAsync(
-            n => n.UserId == userId && n.NoteGroupId == null, 
+            n => n.UserId == userId && n.NoteGroupId == null,
             cancellationToken);
-        note.Order = existingNotes.Any() ? existingNotes.Max(n => n.Order) + 1 : 0;
+        if (existingNotes.Any())
+        {
+            var currentMin = existingNotes.Min(n => n.Order);
+            // Guard against int underflow in pathological cases
+            note.Order = currentMin <= int.MinValue + 1 ? int.MinValue + 1 : currentMin - 1;
+        }
+        else
+        {
+            note.Order = 0;
+        }
 
         await _noteWriteRepository.AddAsync(note, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("Note created from YouTube. NoteId={NoteId} UserId={UserId} VideoId={VideoId} HasCustomTitle={HasCustomTitle}", note.Id, userId, videoId, trimmedCustomTitle is not null);
 
         // Best-effort: upload thumbnail to blob and update note url
         if (!string.IsNullOrWhiteSpace(meta.ThumbnailUrl))
@@ -83,11 +97,13 @@ public sealed class CreateNoteFromYoutubeUrlCommandHandler : IRequestHandler<Cre
                 note.ThumbnailUrl = uploadedUrl!;
                 _noteWriteRepository.Update(note);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation("Note thumbnail uploaded. NoteId={NoteId} UserId={UserId}", note.Id, userId);
             }
             else
             {
                 // fallback: keep original meta url
                 note.ThumbnailUrl = meta.ThumbnailUrl;
+                _logger.LogWarning("Note thumbnail upload failed, kept metadata URL. NoteId={NoteId} UserId={UserId}", note.Id, userId);
             }
         }
 

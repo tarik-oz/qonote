@@ -15,5 +15,3 @@ public sealed class SnippetDto
     public string SectionTitle { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
 }
-
-

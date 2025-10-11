@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Qonote.Core.Application.Abstractions.Data;
 using Qonote.Core.Application.Abstractions.Security;
 using Qonote.Core.Domain.Entities;
@@ -11,17 +12,20 @@ public sealed class CreateNoteGroupCommandHandler : IRequestHandler<CreateNoteGr
     private readonly IReadRepository<NoteGroup, int> _groupReader;
     private readonly IUnitOfWork _uow;
     private readonly ICurrentUserService _currentUser;
+    private readonly ILogger<CreateNoteGroupCommandHandler> _logger;
 
     public CreateNoteGroupCommandHandler(
         IWriteRepository<NoteGroup, int> groupWriter,
         IReadRepository<NoteGroup, int> groupReader,
         IUnitOfWork uow,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        ILogger<CreateNoteGroupCommandHandler> logger)
     {
         _groupWriter = groupWriter;
         _groupReader = groupReader;
         _uow = uow;
         _currentUser = currentUser;
+        _logger = logger;
     }
 
     public async Task<int> Handle(CreateNoteGroupCommand request, CancellationToken cancellationToken)
@@ -41,6 +45,7 @@ public sealed class CreateNoteGroupCommandHandler : IRequestHandler<CreateNoteGr
 
         await _groupWriter.AddAsync(group, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("Note group created {GroupId} by {UserId}", group.Id, userId);
         return group.Id;
     }
 }

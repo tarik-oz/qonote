@@ -8,7 +8,7 @@ using Qonote.Core.Application.Features.Notes.ListFlatNotes;
 using Qonote.Core.Application.Features.Notes.ReorderNotes;
 using Qonote.Core.Application.Features.Notes.UpdateNote;
 using Qonote.Core.Application.Features.Notes.SearchNotes;
-using Qonote.Core.Application.Features.Sections.SetUiStateBatch;
+using Qonote.Core.Application.Features.Sections.SetSectionUiStateBatch;
 
 namespace Qonote.Presentation.Api.Controllers;
 
@@ -60,11 +60,11 @@ public class NotesController : ControllerBase
     [ProducesResponseType(typeof(SearchNotesResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> Search([FromQuery] string q, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, CancellationToken ct = default)
     {
-        var result = await _mediator.Send(new SearchNotesQuery 
-        { 
-            Query = q ?? string.Empty, 
-            PageNumber = pageNumber, 
-            PageSize = pageSize 
+        var result = await _mediator.Send(new SearchNotesQuery
+        {
+            Query = q ?? string.Empty,
+            PageNumber = pageNumber,
+            PageSize = pageSize
         }, ct);
         return Ok(result);
     }
@@ -74,6 +74,15 @@ public class NotesController : ControllerBase
     public async Task<IActionResult> Reorder([FromBody] List<NoteReorderItem> items, CancellationToken ct)
     {
         await _mediator.Send(new ReorderNotesCommand(items), ct);
+        return NoContent();
+    }
+
+    [HttpPatch("groups/{groupId:int}/order")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ReorderInGroup(int groupId, [FromBody] List<NoteReorderItem> items, CancellationToken ct)
+    {
+        await _mediator.Send(new ReorderNotesCommand(items, groupId), ct);
         return NoContent();
     }
 

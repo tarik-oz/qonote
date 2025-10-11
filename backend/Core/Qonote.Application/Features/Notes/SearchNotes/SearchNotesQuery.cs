@@ -15,5 +15,3 @@ public sealed class SearchNotesResponse
     public List<SearchResultDto> Results { get; set; } = new();
     public int TotalCount { get; set; }
 }
-
-

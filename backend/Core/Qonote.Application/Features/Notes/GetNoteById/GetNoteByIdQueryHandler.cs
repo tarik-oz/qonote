@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.Extensions.Logging;
 using AutoMapper;
 using Qonote.Core.Application.Abstractions.Data;
 using Qonote.Core.Application.Abstractions.Security;
@@ -15,13 +16,15 @@ public sealed class GetNoteByIdQueryHandler : IRequestHandler<GetNoteByIdQuery, 
     private readonly ISectionUiStateStore _uiStateStore;
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
+    private readonly ILogger<GetNoteByIdQueryHandler> _logger;
 
     public GetNoteByIdQueryHandler(IReadRepository<Note, int> noteReader,
         IReadRepository<Section, int> sectionReader,
         IReadRepository<Block, Guid> blockReader,
         ICurrentUserService currentUser,
         ISectionUiStateStore uiStateStore,
-        IMapper mapper)
+        IMapper mapper,
+        ILogger<GetNoteByIdQueryHandler> logger)
     {
         _noteReader = noteReader;
         _sectionReader = sectionReader;
@@ -29,6 +32,7 @@ public sealed class GetNoteByIdQueryHandler : IRequestHandler<GetNoteByIdQuery, 
         _currentUser = currentUser;
         _uiStateStore = uiStateStore;
         _mapper = mapper;
+        _logger = logger;
     }
 
     public async Task<NoteDto> Handle(GetNoteByIdQuery request, CancellationToken cancellationToken)
@@ -81,6 +85,7 @@ public sealed class GetNoteByIdQueryHandler : IRequestHandler<GetNoteByIdQuery, 
             dto.Sections.Add(sDto);
         }
 
+        _logger.LogInformation("Note fetched. NoteId={NoteId}", request.Id);
         return dto;
     }
 }

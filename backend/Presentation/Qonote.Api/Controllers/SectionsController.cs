@@ -5,7 +5,7 @@ using Qonote.Core.Application.Features.Sections.CreateSection;
 using Qonote.Core.Application.Features.Sections.UpdateSection;
 using Qonote.Core.Application.Features.Sections.DeleteSection;
 using Qonote.Core.Application.Features.Sections.ReorderSections;
-using Qonote.Core.Application.Features.Sections.SetUiState;
+using Qonote.Core.Application.Features.Sections.SetSectionUiState;
 
 namespace Qonote.Presentation.Api.Controllers;
 
@@ -55,7 +55,7 @@ public sealed class SectionsController : ControllerBase
 
     [HttpPut("{id:int}/ui-state")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> SetUiState([FromRoute] int id, [FromBody] SetSectionUiStateCommand body, CancellationToken ct)
+    public async Task<IActionResult> SetSectionUiState([FromRoute] int id, [FromBody] SetSectionUiStateCommand body, CancellationToken ct)
     {
         var cmd = body with { SectionId = id };
         await _mediator.Send(cmd, ct);
