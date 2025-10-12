@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Qonote.Core.Application.Abstractions.Data;
 using Qonote.Core.Application.Exceptions;
 using Qonote.Core.Domain.Entities;
@@ -10,20 +11,24 @@ public sealed class CreateSubscriptionPlanCommandHandler : IRequestHandler<Creat
     private readonly IReadRepository<SubscriptionPlan, int> _reader;
     private readonly IWriteRepository<SubscriptionPlan, int> _writer;
     private readonly IUnitOfWork _uow;
+    private readonly ILogger<CreateSubscriptionPlanCommandHandler> _logger;
 
     public CreateSubscriptionPlanCommandHandler(
         IReadRepository<SubscriptionPlan, int> reader,
         IWriteRepository<SubscriptionPlan, int> writer,
-        IUnitOfWork uow)
+        IUnitOfWork uow,
+        ILogger<CreateSubscriptionPlanCommandHandler> logger)
     {
         _reader = reader;
         _writer = writer;
         _uow = uow;
+        _logger = logger;
     }
 
     public async Task<int> Handle(CreateSubscriptionPlanCommand request, CancellationToken cancellationToken)
     {
         // Ensure unique PlanCode among non-deleted plans
+        _logger.LogInformation("Admin CreateSubscriptionPlan started. planCode={PlanCode}", request.PlanCode);
         var exists = (await _reader.GetAllAsync(p => p.PlanCode == request.PlanCode, cancellationToken)).Any();
         if (exists)
         {
@@ -42,6 +47,7 @@ public sealed class CreateSubscriptionPlanCommandHandler : IRequestHandler<Creat
         };
         await _writer.AddAsync(entity, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("Admin CreateSubscriptionPlan created. planId={PlanId}, planCode={PlanCode}", entity.Id, request.PlanCode);
         return entity.Id;
     }
 }

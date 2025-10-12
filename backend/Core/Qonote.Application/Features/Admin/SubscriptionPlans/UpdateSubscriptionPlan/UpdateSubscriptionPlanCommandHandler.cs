@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Qonote.Core.Application.Abstractions.Data;
 using Qonote.Core.Application.Exceptions;
 using Qonote.Core.Domain.Entities;
@@ -10,19 +11,23 @@ public sealed class UpdateSubscriptionPlanCommandHandler : IRequestHandler<Updat
     private readonly IReadRepository<SubscriptionPlan, int> _reader;
     private readonly IWriteRepository<SubscriptionPlan, int> _writer;
     private readonly IUnitOfWork _uow;
+    private readonly ILogger<UpdateSubscriptionPlanCommandHandler> _logger;
 
     public UpdateSubscriptionPlanCommandHandler(
         IReadRepository<SubscriptionPlan, int> reader,
         IWriteRepository<SubscriptionPlan, int> writer,
-        IUnitOfWork uow)
+        IUnitOfWork uow,
+        ILogger<UpdateSubscriptionPlanCommandHandler> logger)
     {
         _reader = reader;
         _writer = writer;
         _uow = uow;
+        _logger = logger;
     }
 
     public async Task Handle(UpdateSubscriptionPlanCommand request, CancellationToken cancellationToken)
     {
+        _logger.LogInformation("Admin UpdateSubscriptionPlan started. planId={PlanId}", request.Id);
         var entity = await _reader.GetByIdAsync(request.Id, cancellationToken);
         if (entity is null)
             throw new NotFoundException($"SubscriptionPlan {request.Id} not found.");
@@ -44,5 +49,6 @@ public sealed class UpdateSubscriptionPlanCommandHandler : IRequestHandler<Updat
 
         _writer.Update(entity);
         await _uow.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("Admin UpdateSubscriptionPlan updated. planId={PlanId}", request.Id);
     }
 }

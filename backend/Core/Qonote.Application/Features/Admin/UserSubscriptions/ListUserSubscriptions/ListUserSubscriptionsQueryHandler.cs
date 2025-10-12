@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Qonote.Core.Application.Abstractions.Data;
 using Qonote.Core.Application.Features.Subscriptions._Shared;
 using Qonote.Core.Domain.Entities;
@@ -9,17 +10,21 @@ public sealed class ListUserSubscriptionsQueryHandler : IRequestHandler<ListUser
 {
     private readonly IReadRepository<UserSubscription, int> _reader;
     private readonly IReadRepository<SubscriptionPlan, int> _planReader;
+    private readonly ILogger<ListUserSubscriptionsQueryHandler> _logger;
 
     public ListUserSubscriptionsQueryHandler(
         IReadRepository<UserSubscription, int> reader,
-        IReadRepository<SubscriptionPlan, int> planReader)
+        IReadRepository<SubscriptionPlan, int> planReader,
+        ILogger<ListUserSubscriptionsQueryHandler> logger)
     {
         _reader = reader;
         _planReader = planReader;
+        _logger = logger;
     }
 
     public async Task<List<UserSubscriptionDto>> Handle(ListUserSubscriptionsQuery request, CancellationToken cancellationToken)
     {
+        _logger.LogDebug("Admin ListUserSubscriptions started. userId={UserId}", request.UserId);
         var items = await _reader.GetAllAsync(us => us.UserId == request.UserId, cancellationToken);
 
         var planIds = items.Select(i => i.PlanId).Distinct().ToList();
@@ -28,7 +33,7 @@ public sealed class ListUserSubscriptionsQueryHandler : IRequestHandler<ListUser
             : new List<SubscriptionPlan>();
         var planDict = plans.ToDictionary(p => p.Id);
 
-        return items
+        var result = items
             .OrderByDescending(us => us.StartDate)
             .Select(us => new UserSubscriptionDto
             {
@@ -47,5 +52,7 @@ public sealed class ListUserSubscriptionsQueryHandler : IRequestHandler<ListUser
                 CurrentPeriodEnd = us.CurrentPeriodEnd
             })
             .ToList();
+        _logger.LogDebug("Admin ListUserSubscriptions returning {Count} items for userId={UserId}", result.Count, request.UserId);
+        return result;
     }
 }

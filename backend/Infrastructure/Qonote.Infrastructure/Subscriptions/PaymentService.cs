@@ -42,7 +42,7 @@ public class PaymentService : IPaymentService
         _paymentsWriter = paymentsWriter;
         _uow = uow;
         _cacheInvalidation = cacheInvalidation;
-        
+
         // Configure HttpClient for Lemon Squeezy API
         _httpClient.BaseAddress = new Uri(_settings.BaseUrl);
         _httpClient.DefaultRequestHeaders.Add("Accept", "application/vnd.api+json");
@@ -59,18 +59,18 @@ public class PaymentService : IPaymentService
 
         var checkoutAttributes = new Dictionary<string, object?>
         {
-            ["checkout_data"] = new 
-            { 
-                email = email, 
+            ["checkout_data"] = new
+            {
+                email = email,
                 name = customerName,
                 custom = new { user_id = userId }
             }
         };
-        
+
         if (!string.IsNullOrWhiteSpace(successUrl))
         {
-            checkoutAttributes["product_options"] = new 
-            { 
+            checkoutAttributes["product_options"] = new
+            {
                 redirect_url = successUrl
             };
         }
@@ -210,6 +210,12 @@ public class PaymentService : IPaymentService
         var data = root.GetProperty("data");
         var dataId = data.GetProperty("id").GetString();
         var attributes = data.GetProperty("attributes");
+        // Extract optional customer and price identifiers if available
+        string? externalCustomerId = null;
+        if (attributes.TryGetProperty("customer_id", out var custId))
+        {
+            externalCustomerId = custId.ValueKind == JsonValueKind.String ? custId.GetString() : custId.GetInt32().ToString();
+        }
 
         switch (eventName)
         {
@@ -247,17 +253,28 @@ public class PaymentService : IPaymentService
     {
         int? variantId = null;
         if (attributes.TryGetProperty("variant_id", out var vid) && vid.TryGetInt32(out var v)) variantId = v;
+        // Extract external customer id if present
+        string? externalCustomerId = null;
+        if (attributes.TryGetProperty("customer_id", out var custId))
+        {
+            externalCustomerId = custId.ValueKind == JsonValueKind.String ? custId.GetString() : custId.GetInt32().ToString();
+        }
+        string? externalPriceId = null;
+        if (attributes.TryGetProperty("variant_id", out var variantEl))
+        {
+            externalPriceId = variantEl.ValueKind == JsonValueKind.String ? variantEl.GetString() : variantEl.GetInt32().ToString();
+        }
 
         SubscriptionPlan? plan = null;
         if (variantId.HasValue)
         {
             var variantIdStr = variantId.Value.ToString();
             var withVariant = await _plans.GetAllAsync(
-                p => p.ExternalPriceIdMonthly == variantIdStr || p.ExternalPriceIdYearly == variantIdStr, 
+                p => p.ExternalPriceIdMonthly == variantIdStr || p.ExternalPriceIdYearly == variantIdStr,
                 ct);
             plan = withVariant.FirstOrDefault();
         }
-        
+
         // Fallback: try finding by product_id if variant lookup failed
         if (plan is null && attributes.TryGetProperty("product_id", out var prodId) && prodId.TryGetInt32(out var productId))
         {
@@ -287,6 +304,17 @@ public class PaymentService : IPaymentService
             if (DateTime.TryParse(endsAt.GetString(), out var e)) currentPeriodEnd = e.ToUniversalTime();
         }
 
+        // Determine billing interval from attributes if available
+        var interval = BillingInterval.Monthly;
+        if (attributes.TryGetProperty("billing_interval", out var intervalProp) && intervalProp.ValueKind == JsonValueKind.String)
+        {
+            var intervalStr = intervalProp.GetString();
+            interval = intervalStr?.Equals("year", StringComparison.OrdinalIgnoreCase) == true
+                || intervalStr?.Equals("yearly", StringComparison.OrdinalIgnoreCase) == true
+                ? BillingInterval.Yearly
+                : BillingInterval.Monthly;
+        }
+
         var subs = await _subsReader.GetAllAsync(s => s.ExternalSubscriptionId == externalSubscriptionId, ct);
         var sub = subs.FirstOrDefault();
 
@@ -300,10 +328,12 @@ public class PaymentService : IPaymentService
                 UserId = userId,
                 PlanId = plan?.Id ?? 0,
                 StartDate = DateTime.UtcNow,
-                Status = SubscriptionStatus.Active,
-                BillingInterval = BillingInterval.Monthly,
+                Status = status,
+                BillingInterval = interval,
                 AutoRenew = true,
                 ExternalSubscriptionId = externalSubscriptionId,
+                ExternalCustomerId = externalCustomerId,
+                ExternalPriceId = externalPriceId,
                 CurrentPeriodEnd = currentPeriodEnd,
                 PaymentProvider = "LemonSqueezy"
             };
@@ -311,13 +341,26 @@ public class PaymentService : IPaymentService
         }
         else
         {
-            if (plan is not null) sub.PlanId = plan.Id;
+            if (plan is not null && plan.Id > 0) sub.PlanId = plan.Id;
             sub.Status = status;
             sub.CurrentPeriodEnd = currentPeriodEnd;
+            sub.BillingInterval = interval;
+            if (!string.IsNullOrWhiteSpace(externalCustomerId)) sub.ExternalCustomerId = externalCustomerId;
+            if (!string.IsNullOrWhiteSpace(externalPriceId)) sub.ExternalPriceId = externalPriceId;
+        }
+
+        // If cancelled and an end date is provided, set EndDate; if resumed, clear EndDate
+        if (status == SubscriptionStatus.Cancelled)
+        {
+            sub.EndDate = currentPeriodEnd;
+        }
+        else if (status == SubscriptionStatus.Active || status == SubscriptionStatus.Trialing)
+        {
+            sub.EndDate = null;
         }
 
         await _uow.SaveChangesAsync(ct);
-        
+
         // Invalidate user cache since plan has changed
         if (!string.IsNullOrWhiteSpace(userId))
         {
@@ -326,7 +369,7 @@ public class PaymentService : IPaymentService
     }
 
     private async Task HandleSubscriptionPaymentSuccess(string? userId, string? invoiceId, JsonElement attributes, CancellationToken ct)
-    {        
+    {
         decimal amount = 0m;
         if (attributes.TryGetProperty("total", out var total) && total.TryGetDecimal(out var totalDec))
         {
@@ -336,15 +379,15 @@ public class PaymentService : IPaymentService
         {
             amount = subtotalDec / 100;
         }
-        
+
         var currency = attributes.TryGetProperty("currency", out var curr) ? curr.GetString() ?? "USD" : "USD";
-        
+
         string? invoiceUrl = null;
         if (attributes.TryGetProperty("urls", out var urls) && urls.TryGetProperty("invoice_url", out var invUrlProp))
         {
             invoiceUrl = invUrlProp.GetString();
         }
-        
+
         string? subscriptionId = null;
         if (attributes.TryGetProperty("subscription_id", out var subId))
         {
@@ -355,22 +398,22 @@ public class PaymentService : IPaymentService
         {
             return;
         }
-        
+
         UserSubscription? sub = null;
-        
+
         if (!string.IsNullOrWhiteSpace(subscriptionId))
         {
             var subsByExtId = await _subsReader.GetAllAsync(s => s.ExternalSubscriptionId == subscriptionId, ct);
             sub = subsByExtId.FirstOrDefault();
         }
-        
+
         // Fallback: get latest subscription for user
         if (sub is null)
         {
             var subs = await _subsReader.GetAllAsync(s => s.UserId == userId, ct);
             sub = subs.OrderByDescending(s => s.StartDate).FirstOrDefault();
         }
-        
+
         if (sub is null)
         {
             return;
@@ -389,7 +432,7 @@ public class PaymentService : IPaymentService
             PaidAt = DateTime.UtcNow,
             Description = $"Subscription payment for plan {sub.PlanId}"
         };
-        
+
         await _paymentsWriter.AddAsync(payment, ct);
         await _uow.SaveChangesAsync(ct);
     }

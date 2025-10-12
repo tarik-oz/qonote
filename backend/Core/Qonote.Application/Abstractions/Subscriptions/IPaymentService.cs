@@ -1,5 +1,3 @@
-using Qonote.Core.Domain.Enums;
-
 namespace Qonote.Core.Application.Abstractions.Subscriptions;
 
 /// <summary>
@@ -17,11 +15,11 @@ public interface IPaymentService
         string? successUrl = null,
         string? cancelUrl = null,
         CancellationToken cancellationToken = default);
-    
+
     // Lemon Squeezy API - Subscription Management
     Task CancelSubscriptionAsync(string externalSubscriptionId, CancellationToken cancellationToken = default);
     Task ResumeSubscriptionAsync(string externalSubscriptionId, CancellationToken cancellationToken = default);
-    
+
     // Lemon Squeezy API - Customer
     Task<string?> GetOrCreateCustomerAsync(string email, string name, CancellationToken cancellationToken = default);
 

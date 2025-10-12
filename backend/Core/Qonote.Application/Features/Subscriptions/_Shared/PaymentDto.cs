@@ -2,7 +2,7 @@ using Qonote.Core.Domain.Enums;
 
 namespace Qonote.Core.Application.Features.Subscriptions._Shared;
 
-public record PaymentDto
+public sealed record PaymentDto
 {
     public int Id { get; init; }
     public decimal Amount { get; init; }

@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Qonote.Core.Application.Abstractions.Caching;
 using Qonote.Core.Application.Abstractions.Data;
 using Qonote.Core.Application.Exceptions;
@@ -13,21 +14,25 @@ public sealed class CancelUserSubscriptionCommandHandler : IRequestHandler<Cance
     private readonly IWriteRepository<UserSubscription, int> _writer;
     private readonly IUnitOfWork _uow;
     private readonly ICacheInvalidationService _cacheInvalidation;
+    private readonly ILogger<CancelUserSubscriptionCommandHandler> _logger;
 
     public CancelUserSubscriptionCommandHandler(
         IReadRepository<UserSubscription, int> reader,
         IWriteRepository<UserSubscription, int> writer,
         IUnitOfWork uow,
-        ICacheInvalidationService cacheInvalidation)
+        ICacheInvalidationService cacheInvalidation,
+        ILogger<CancelUserSubscriptionCommandHandler> logger)
     {
         _reader = reader;
         _writer = writer;
         _uow = uow;
         _cacheInvalidation = cacheInvalidation;
+        _logger = logger;
     }
 
     public async Task<Unit> Handle(CancelUserSubscriptionCommand request, CancellationToken cancellationToken)
     {
+        _logger.LogInformation("Admin CancelUserSubscription started. userId={UserId}, subscriptionId={SubscriptionId}, atPeriodEnd={AtPeriodEnd}", request.UserId, request.SubscriptionId, request.CancelAtPeriodEnd);
         var sub = await _reader.GetByIdAsync(request.SubscriptionId, cancellationToken);
         if (sub is null || sub.UserId != request.UserId)
         {
@@ -53,6 +58,7 @@ public sealed class CancelUserSubscriptionCommandHandler : IRequestHandler<Cance
         await _uow.SaveChangesAsync(cancellationToken);
 
         await _cacheInvalidation.RemoveMeAsync(request.UserId, cancellationToken);
+        _logger.LogInformation("Admin CancelUserSubscription updated. userId={UserId}, subscriptionId={SubscriptionId}", request.UserId, request.SubscriptionId);
         return Unit.Value;
     }
 }

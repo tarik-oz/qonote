@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Qonote.Core.Application.Abstractions.Subscriptions;
 using Qonote.Infrastructure.Persistence.Context;
+using Qonote.Core.Domain.Enums;
 
 namespace Qonote.Infrastructure.Subscriptions;
 
@@ -20,11 +21,14 @@ public class PlanResolver : IPlanResolver
         // Find active subscription - EndDate can be null for ongoing subscriptions
         var activeSub = await _db.UserSubscriptions
             .AsNoTracking()
-            .Where(us => us.UserId == userId 
+            .Where(us => us.UserId == userId
                 && !us.IsDeleted
                 && us.StartDate <= now
-                && (us.Status == Core.Domain.Enums.SubscriptionStatus.Active 
-                    || us.Status == Core.Domain.Enums.SubscriptionStatus.Trialing)
+                && (
+                    us.Status == SubscriptionStatus.Active
+                    || us.Status == SubscriptionStatus.Trialing
+                    || (us.Status == SubscriptionStatus.Cancelled && us.EndDate != null && us.EndDate > now)
+                   )
                 && (us.EndDate == null || us.EndDate > now))
             .OrderByDescending(us => us.StartDate)
             .Select(us => new { us.PlanId, us.Plan!.PlanCode, us.Plan!.MaxNoteCount, us.Status, us.StartDate, us.EndDate })
@@ -45,11 +49,15 @@ public class PlanResolver : IPlanResolver
                 return new EffectivePlan(0, "FREE", 2);
             }
 
-            return new EffectivePlan(free.Id, free.PlanCode, free.MaxNoteCount);
+            // Interpret negative MaxNoteCount as unlimited
+            var max = free.MaxNoteCount < 0 ? int.MaxValue : free.MaxNoteCount;
+            return new EffectivePlan(free.Id, free.PlanCode, max);
         }
         else
         {
-            return new EffectivePlan(activeSub.PlanId, activeSub.PlanCode, activeSub.MaxNoteCount);
+            // Interpret negative MaxNoteCount as unlimited
+            var max = activeSub.MaxNoteCount < 0 ? int.MaxValue : activeSub.MaxNoteCount;
+            return new EffectivePlan(activeSub.PlanId, activeSub.PlanCode, max);
         }
     }
 }

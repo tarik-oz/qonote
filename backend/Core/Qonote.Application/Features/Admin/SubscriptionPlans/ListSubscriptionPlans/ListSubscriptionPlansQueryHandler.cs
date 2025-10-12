@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Qonote.Core.Application.Abstractions.Data;
 using Qonote.Core.Application.Features.Subscriptions._Shared;
 using Qonote.Core.Domain.Entities;
@@ -8,12 +9,18 @@ namespace Qonote.Core.Application.Features.Admin.SubscriptionPlans.ListSubscript
 public sealed class ListSubscriptionPlansQueryHandler : IRequestHandler<ListSubscriptionPlansQuery, List<SubscriptionPlanDto>>
 {
     private readonly IReadRepository<SubscriptionPlan, int> _reader;
-    public ListSubscriptionPlansQueryHandler(IReadRepository<SubscriptionPlan, int> reader) => _reader = reader;
+    private readonly ILogger<ListSubscriptionPlansQueryHandler> _logger;
+    public ListSubscriptionPlansQueryHandler(IReadRepository<SubscriptionPlan, int> reader, ILogger<ListSubscriptionPlansQueryHandler> logger)
+    {
+        _reader = reader;
+        _logger = logger;
+    }
 
     public async Task<List<SubscriptionPlanDto>> Handle(ListSubscriptionPlansQuery request, CancellationToken cancellationToken)
     {
+        _logger.LogDebug("Admin ListSubscriptionPlans started");
         var items = await _reader.GetAllAsync(null, cancellationToken);
-        return items
+        var result = items
             .OrderBy(p => p.PlanCode)
             .Select(p => new SubscriptionPlanDto
             {
@@ -29,5 +36,7 @@ public sealed class ListSubscriptionPlansQueryHandler : IRequestHandler<ListSubs
                 IsActive = p.IsActive
             })
             .ToList();
+        _logger.LogDebug("Admin ListSubscriptionPlans returning {Count} plans", result.Count);
+        return result;
     }
 }

@@ -2,7 +2,7 @@ using Qonote.Core.Domain.Enums;
 
 namespace Qonote.Core.Application.Features.Subscriptions._Shared;
 
-public record UserSubscriptionDto
+public sealed record UserSubscriptionDto
 {
     public int Id { get; init; }
     public string PlanName { get; init; } = string.Empty;

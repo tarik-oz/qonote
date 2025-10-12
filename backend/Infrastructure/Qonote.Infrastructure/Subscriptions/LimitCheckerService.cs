@@ -25,11 +25,14 @@ public class LimitCheckerService : ILimitCheckerService
             .Where(n => n.UserId == userId && !n.IsDeleted)
             .CountAsync(cancellationToken);
 
-        if (activeCount >= plan.MaxNoteCount)
+        // If plan is unlimited (MaxNoteCount == int.MaxValue), always allow
+        if (plan.MaxNoteCount != int.MaxValue && activeCount >= plan.MaxNoteCount)
         {
             var failures = new[]
             {
-                new FluentValidation.Results.ValidationFailure("Limit.MaxNoteCount", $"You reached the note limit for your plan ({plan.PlanCode}).")
+                new FluentValidation.Results.ValidationFailure(
+                    "Limit.MaxNoteCount",
+                    $"You reached the note limit for your plan ({plan.PlanCode}): {activeCount}/{plan.MaxNoteCount}.")
             };
             throw new ValidationException(failures);
         }

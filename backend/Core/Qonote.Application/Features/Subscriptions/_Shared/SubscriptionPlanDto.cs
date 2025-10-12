@@ -1,6 +1,6 @@
 namespace Qonote.Core.Application.Features.Subscriptions._Shared;
 
-public record SubscriptionPlanDto
+public sealed record SubscriptionPlanDto
 {
     public int Id { get; init; }
     public string PlanCode { get; init; } = string.Empty;

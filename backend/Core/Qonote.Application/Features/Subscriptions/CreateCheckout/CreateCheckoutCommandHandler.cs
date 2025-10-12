@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using Qonote.Core.Application.Abstractions.Data;
 using Qonote.Core.Application.Abstractions.Security;
 using Qonote.Core.Application.Abstractions.Subscriptions;
@@ -16,22 +17,26 @@ public sealed class CreateCheckoutCommandHandler : IRequestHandler<CreateCheckou
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IReadRepository<SubscriptionPlan, int> _planReader;
     private readonly IPaymentService _paymentService;
+    private readonly ILogger<CreateCheckoutCommandHandler> _logger;
 
     public CreateCheckoutCommandHandler(
         ICurrentUserService currentUser,
         UserManager<ApplicationUser> userManager,
         IReadRepository<SubscriptionPlan, int> planReader,
-        IPaymentService paymentService)
+        IPaymentService paymentService,
+        ILogger<CreateCheckoutCommandHandler> logger)
     {
         _currentUser = currentUser;
         _userManager = userManager;
         _planReader = planReader;
         _paymentService = paymentService;
+        _logger = logger;
     }
 
     public async Task<CheckoutUrlDto> Handle(CreateCheckoutCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUser.UserId ?? throw new UnauthorizedAccessException();
+        _logger.LogInformation("CreateCheckout started. userId={UserId}, planId={PlanId}, interval={Interval}", userId, request.PlanId, request.BillingInterval);
         var user = await _userManager.FindByIdAsync(userId) ?? throw new NotFoundException("User not found");
 
         // TODO: Implement proper subscription management (upgrade/downgrade) in the future
@@ -44,12 +49,12 @@ public sealed class CreateCheckoutCommandHandler : IRequestHandler<CreateCheckou
         var variantIdStr = request.BillingInterval == Core.Domain.Enums.BillingInterval.Monthly
             ? plan.ExternalPriceIdMonthly
             : plan.ExternalPriceIdYearly;
-            
+
         if (string.IsNullOrWhiteSpace(variantIdStr) || !int.TryParse(variantIdStr, out var variantId))
         {
             throw new ValidationException(new[]
             {
-                new FluentValidation.Results.ValidationFailure("BillingInterval", 
+                new FluentValidation.Results.ValidationFailure("BillingInterval",
                     $"Plan is not configured with Lemon Squeezy variant ID for {request.BillingInterval} billing.")
             });
         }
@@ -61,6 +66,19 @@ public sealed class CreateCheckoutCommandHandler : IRequestHandler<CreateCheckou
 
         var name = string.IsNullOrWhiteSpace(user.Name) ? (user.UserName ?? email) : user.Name;
 
+        // Ensure we have an ExternalCustomerId for future subscription management
+        if (string.IsNullOrWhiteSpace(user.ExternalCustomerId))
+        {
+            _logger.LogDebug("No ExternalCustomerId. Creating or retrieving external customer. userId={UserId}", userId);
+            var customerId = await _paymentService.GetOrCreateCustomerAsync(email, name, cancellationToken);
+            if (!string.IsNullOrWhiteSpace(customerId))
+            {
+                user.ExternalCustomerId = customerId;
+                await _userManager.UpdateAsync(user);
+                _logger.LogInformation("Linked ExternalCustomerId for user. userId={UserId}", userId);
+            }
+        }
+
         var checkoutUrl = await _paymentService.CreateCheckoutUrlAsync(
             email,
             name,
@@ -70,6 +88,7 @@ public sealed class CreateCheckoutCommandHandler : IRequestHandler<CreateCheckou
             request.SuccessUrl,
             request.CancelUrl,
             cancellationToken);
+        _logger.LogInformation("CreateCheckout succeeded. userId={UserId}, planId={PlanId}, interval={Interval}", userId, request.PlanId, request.BillingInterval);
         return new CheckoutUrlDto { CheckoutUrl = checkoutUrl };
     }
 }
