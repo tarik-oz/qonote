@@ -46,6 +46,15 @@ public sealed class UpdateSubscriptionPlanCommandHandler : IRequestHandler<Updat
         entity.PlanCode = request.PlanCode;
         entity.Name = request.Name;
         entity.MaxNoteCount = request.MaxNoteCount;
+        entity.Description = request.Description;
+        entity.MonthlyPrice = request.MonthlyPrice;
+        entity.YearlyPrice = request.YearlyPrice;
+        entity.Currency = request.Currency;
+        entity.TrialDays = request.TrialDays;
+        entity.IsActive = request.IsActive;
+        entity.ExternalProductId = request.ExternalProductId;
+        entity.ExternalPriceIdMonthly = request.ExternalPriceIdMonthly;
+        entity.ExternalPriceIdYearly = request.ExternalPriceIdYearly;
 
         _writer.Update(entity);
         await _uow.SaveChangesAsync(cancellationToken);

@@ -1,28 +1,32 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Qonote.Core.Application.Abstractions.Media;
 using Qonote.Core.Application.Abstractions.Storage;
 using SkiaSharp;
 
-namespace Qonote.Infrastructure.Media;
+namespace Qonote.Infrastructure.Infrastructure.Media;
 
 public sealed class ImageService : IImageService
 {
     private readonly IFileStorageService _fileStorageService;
     private readonly HttpClient _httpClient;
+    private readonly ILogger<ImageService> _logger;
 
     private const string ThumbnailsContainer = "thumbnails";
     private const string ProfilePicturesContainer = "profile-pictures";
 
-    public ImageService(IFileStorageService fileStorageService, HttpClient httpClient)
+    public ImageService(IFileStorageService fileStorageService, HttpClient httpClient, ILogger<ImageService> logger)
     {
         _fileStorageService = fileStorageService;
         _httpClient = httpClient;
+        _logger = logger;
     }
 
     public async Task<string?> UploadNoteThumbnailFromUrlAsync(string imageUrl, string userId, int noteId, CancellationToken cancellationToken)
     {
         try
         {
+            _logger.LogInformation("Thumbnail upload from URL started. userId={UserId}, noteId={NoteId}", userId, noteId);
             var response = await _httpClient.GetAsync(imageUrl, cancellationToken);
             if (!response.IsSuccessStatusCode)
                 return null;
@@ -41,10 +45,12 @@ public sealed class ImageService : IImageService
             webpStream.Position = 0;
             var fileName = $"{userId}/notes/{noteId}/thumbnail{webp.Value.ext}"; // hierarchical path
             var blobUrl = await _fileStorageService.UploadAsync(webpStream, ThumbnailsContainer, fileName, webp.Value.contentType);
+            _logger.LogInformation("Thumbnail upload completed. userId={UserId}, noteId={NoteId}", userId, noteId);
             return blobUrl;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Thumbnail upload failed. userId={UserId}, noteId={NoteId}", userId, noteId);
             return null;
         }
     }
@@ -52,6 +58,7 @@ public sealed class ImageService : IImageService
     public async Task<string> UploadProfilePictureAsync(IFormFile file, string userId, CancellationToken cancellationToken)
     {
         await using var input = file.OpenReadStream();
+        _logger.LogInformation("Profile picture upload started. userId={UserId}, fileLength={Length}", userId, file.Length);
         // Convert to WebP, square-ish max size ~ 256px for header/profile usage
         var webp = ConvertToWebp(input, maxWidth: 256, maxHeight: 256, quality: 85);
         if (webp is null)
@@ -69,19 +76,24 @@ public sealed class ImageService : IImageService
                 };
             }
             var fileNameFallback = $"{userId}{extFallback}";
-            return await _fileStorageService.UploadAsync(file, ProfilePicturesContainer, fileNameFallback);
+            var url = await _fileStorageService.UploadAsync(file, ProfilePicturesContainer, fileNameFallback);
+            _logger.LogInformation("Profile picture upload done (fallback). userId={UserId}", userId);
+            return url;
         }
 
         await using var webpStream = webp.Value.stream;
         webpStream.Position = 0;
         var fileName = $"{userId}{webp.Value.ext}"; // flat naming for now, can switch to {userId}/profile/ later
-        return await _fileStorageService.UploadAsync(webpStream, ProfilePicturesContainer, fileName, webp.Value.contentType);
+        var result = await _fileStorageService.UploadAsync(webpStream, ProfilePicturesContainer, fileName, webp.Value.contentType);
+        _logger.LogInformation("Profile picture upload done. userId={UserId}", userId);
+        return result;
     }
 
     public async Task<string?> UploadProfilePictureFromUrlAsync(string imageUrl, string userId, CancellationToken cancellationToken)
     {
         try
         {
+            _logger.LogInformation("Profile picture upload from URL started. userId={UserId}", userId);
             var response = await _httpClient.GetAsync(imageUrl, cancellationToken);
             if (!response.IsSuccessStatusCode)
                 return null;
@@ -99,10 +111,12 @@ public sealed class ImageService : IImageService
             webpStream.Position = 0;
             var fileName = $"{userId}{webp.Value.ext}";
             var blobUrl = await _fileStorageService.UploadAsync(webpStream, ProfilePicturesContainer, fileName, webp.Value.contentType);
+            _logger.LogInformation("Profile picture upload from URL done. userId={UserId}", userId);
             return blobUrl;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Profile picture upload from URL failed. userId={UserId}", userId);
             return null;
         }
     }
@@ -148,8 +162,9 @@ public sealed class ImageService : IImageService
             output.Position = 0;
             return (output, ".webp", "image/webp");
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogDebug(ex, "ConvertToWebp failed.");
             return null;
         }
     }

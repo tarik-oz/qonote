@@ -3,7 +3,7 @@ using Qonote.Core.Application.Abstractions.Subscriptions;
 using Qonote.Core.Application.Exceptions;
 using Qonote.Infrastructure.Persistence.Context;
 
-namespace Qonote.Infrastructure.Subscriptions;
+namespace Qonote.Infrastructure.Infrastructure.Subscriptions;
 
 public class LimitCheckerService : ILimitCheckerService
 {

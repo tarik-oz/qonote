@@ -3,7 +3,7 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using Qonote.Core.Application.Abstractions.Messaging;
 
-namespace Qonote.Infrastructure.Messaging;
+namespace Qonote.Infrastructure.Infrastructure.Messaging;
 
 public class EmailTemplateRenderer : IEmailTemplateRenderer
 {

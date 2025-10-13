@@ -5,7 +5,7 @@ using Qonote.Core.Application.Abstractions.YouTube;
 using Qonote.Core.Application.Abstractions.YouTube.Models;
 using Qonote.Core.Application.Exceptions;
 
-namespace Qonote.Infrastructure.YouTube;
+namespace Qonote.Infrastructure.Infrastructure.YouTube;
 
 public sealed class YouTubeMetadataService : IYouTubeMetadataService
 {
@@ -29,6 +29,7 @@ public sealed class YouTubeMetadataService : IYouTubeMetadataService
 
         // parts: snippet (title, description, thumbnails, channelTitle), contentDetails (duration)
         var url = $"https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id={Uri.EscapeDataString(videoId)}&key={_settings.ApiKey}";
+        _logger.LogDebug("YouTube fetch metadata started. videoId={VideoId}", videoId);
 
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         using var response = await _httpClient.SendAsync(request, cancellationToken);
@@ -50,6 +51,7 @@ public sealed class YouTubeMetadataService : IYouTubeMetadataService
         var item = json?.Items?.FirstOrDefault();
         if (item is null)
         {
+            _logger.LogInformation("YouTube video not found. videoId={VideoId}", videoId);
             throw new NotFoundException("YouTube video not found or inaccessible.");
         }
 
@@ -61,7 +63,7 @@ public sealed class YouTubeMetadataService : IYouTubeMetadataService
                            ?? item.Snippet.Thumbnails?.Default?.Url
                            ?? string.Empty;
 
-        return new YouTubeVideoMetadata
+        var result = new YouTubeVideoMetadata
         {
             VideoId = videoId,
             Title = item.Snippet.Title ?? string.Empty,
@@ -70,6 +72,8 @@ public sealed class YouTubeMetadataService : IYouTubeMetadataService
             Duration = duration,
             Description = item.Snippet.Description
         };
+        _logger.LogInformation("YouTube metadata fetched. videoId={VideoId}, duration={Duration}s, hasThumbnail={HasThumb}", videoId, (int)duration.TotalSeconds, !string.IsNullOrWhiteSpace(thumbnailUrl));
+        return result;
     }
 
     // minimal types for deserialization of YouTube API

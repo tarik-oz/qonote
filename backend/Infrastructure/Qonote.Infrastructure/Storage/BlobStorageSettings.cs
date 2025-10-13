@@ -1,4 +1,4 @@
-namespace Qonote.Infrastructure.Storage;
+namespace Qonote.Infrastructure.Infrastructure.Storage;
 
 public class BlobStorageSettings
 {

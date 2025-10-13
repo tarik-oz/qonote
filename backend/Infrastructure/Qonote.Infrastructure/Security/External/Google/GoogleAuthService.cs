@@ -1,20 +1,22 @@
 using System.Text.Json;
 using Google.Apis.Auth;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Qonote.Core.Application.Abstractions.Authentication;
-using Qonote.Infrastructure.Infrastructure.Security;
 
-namespace Qonote.Infrastructure.Security.External.Google;
+namespace Qonote.Infrastructure.Infrastructure.Security.External.Google;
 
 public class GoogleAuthService : IGoogleAuthService
 {
     private readonly GoogleSettings _googleSettings;
     private readonly HttpClient _httpClient;
+    private readonly ILogger<GoogleAuthService> _logger;
 
-    public GoogleAuthService(IOptions<GoogleSettings> googleSettings, HttpClient httpClient)
+    public GoogleAuthService(IOptions<GoogleSettings> googleSettings, HttpClient httpClient, ILogger<GoogleAuthService> logger)
     {
         _googleSettings = googleSettings.Value;
         _httpClient = httpClient;
+        _logger = logger;
     }
 
     public string GenerateAuthUrl(string redirectUri)
@@ -35,7 +37,9 @@ public class GoogleAuthService : IGoogleAuthService
             { "access_type", "offline" }
         };
 
-        return Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(googleAuthUrl, parameters);
+        var url = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(googleAuthUrl, parameters);
+        _logger.LogInformation("Google auth URL generated.");
+        return url;
     }
 
     public async Task<ExternalLoginUserDto> ExchangeCodeForUserInfoAsync(string code, string redirectUri)
@@ -54,11 +58,13 @@ public class GoogleAuthService : IGoogleAuthService
             { "grant_type", "authorization_code" }
         };
 
+        _logger.LogInformation("Google token exchange started.");
         var response = await _httpClient.PostAsync("https://oauth2.googleapis.com/token", new FormUrlEncodedContent(tokenRequest));
 
         if (!response.IsSuccessStatusCode)
         {
-            // In a real app, log the response content for debugging
+            var contentError = await response.Content.ReadAsStringAsync();
+            _logger.LogWarning("Google token endpoint responded with {StatusCode}: {Body}", (int)response.StatusCode, contentError);
             throw new Exception("Failed to retrieve token from Google.");
         }
 
@@ -78,6 +84,7 @@ public class GoogleAuthService : IGoogleAuthService
             };
             var payload = await GoogleJsonWebSignature.ValidateAsync(googleTokenResponse.IdToken, validationSettings);
 
+            _logger.LogInformation("Google ID token validated. emailPresent={HasEmail}", !string.IsNullOrWhiteSpace(payload.Email));
             return new ExternalLoginUserDto
             {
                 Email = payload.Email,
@@ -88,7 +95,7 @@ public class GoogleAuthService : IGoogleAuthService
         }
         catch (InvalidJwtException ex)
         {
-            // In a real app, log the exception details
+            _logger.LogWarning(ex, "Invalid Google ID token.");
             throw new Exception("Invalid Google ID token.", ex);
         }
     }

@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Qonote.Core.Application.Abstractions.Messaging;
 
-namespace Qonote.Infrastructure.Messaging;
+namespace Qonote.Infrastructure.Infrastructure.Messaging;
 
 public class AzureEmailService : IEmailService
 {
@@ -46,6 +46,7 @@ public class AzureEmailService : IEmailService
             recipientAddress: to,
             subject: subject,
             htmlContent: body);
+        _logger.LogInformation("Email queued for delivery. to={To}, subject={Subject}", to, subject);
     }
 
     private static string TrimForLog(string html, int max = 500)

@@ -1,4 +1,4 @@
-namespace Qonote.Infrastructure.YouTube;
+namespace Qonote.Infrastructure.Infrastructure.YouTube;
 
 public sealed class YouTubeSettings
 {

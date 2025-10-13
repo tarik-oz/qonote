@@ -1,4 +1,4 @@
-namespace Qonote.Infrastructure.Messaging;
+namespace Qonote.Infrastructure.Infrastructure.Messaging;
 
 public class EmailSettings
 {

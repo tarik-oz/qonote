@@ -5,23 +5,23 @@ using Microsoft.AspNetCore.Identity;
 using Qonote.Core.Application.Abstractions.Authentication;
 using Qonote.Core.Application.Abstractions.Messaging;
 using Qonote.Core.Application.Abstractions.Security;
-using Qonote.Core.Application.Abstractions.Storage;
+// using Qonote.Core.Application.Abstractions.Storage; // already included above
 using Qonote.Infrastructure.Infrastructure.Security;
-using Qonote.Infrastructure.Messaging;
+using Qonote.Infrastructure.Infrastructure.Messaging;
 using Qonote.Core.Domain.Identity;
 using Qonote.Infrastructure.Persistence.Context;
-using Qonote.Infrastructure.Security;
-using Qonote.Infrastructure.Security.External.Google;
-using Qonote.Infrastructure.Storage;
-using Qonote.Infrastructure.YouTube;
+using Qonote.Infrastructure.Infrastructure.Security.External.Google;
+using Qonote.Infrastructure.Infrastructure.Storage;
+using Qonote.Infrastructure.Infrastructure.YouTube;
 using Qonote.Core.Application.Abstractions.YouTube;
 using Qonote.Core.Application.Abstractions.Media;
-using Qonote.Infrastructure.Media;
+using Qonote.Infrastructure.Infrastructure.Media;
 using Qonote.Core.Application.Abstractions.Subscriptions;
-using Qonote.Infrastructure.Subscriptions;
+using Qonote.Infrastructure.Infrastructure.Subscriptions;
 using Qonote.Infrastructure.Infrastructure.Caching;
 using Qonote.Core.Application.Abstractions.Caching;
 using StackExchange.Redis;
+using Qonote.Core.Application.Abstractions.Storage;
 
 namespace Qonote.Infrastructure.Infrastructure;
 
@@ -45,6 +45,8 @@ public static class ServiceRegistration
         services.AddTransient<ITokenService, TokenService>();
         services.AddTransient<IGoogleAuthService, GoogleAuthService>();
         services.AddScoped<IFileStorageService, AzureBlobStorageService>();
+        services.AddScoped<IFileReadUrlService, AzureBlobReadUrlService>();
+        services.AddHostedService<BlobContainerPolicyEnforcer>();
         services.AddTransient<IImageService, ImageService>();
         services.AddTransient<IEmailService, AzureEmailService>();
         services.AddSingleton<IEmailTemplateRenderer, EmailTemplateRenderer>();

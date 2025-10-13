@@ -1,4 +1,4 @@
-namespace Qonote.Infrastructure.Subscriptions;
+namespace Qonote.Infrastructure.Infrastructure.Subscriptions;
 
 public class LemonSqueezySettings
 {

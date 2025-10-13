@@ -7,7 +7,9 @@ using System.Text;
 using System.Text.Json;
 using Qonote.Core.Application.Exceptions;
 using Qonote.Core.Application.Abstractions.Caching;
-namespace Qonote.Infrastructure.Subscriptions;
+using Microsoft.Extensions.Logging;
+
+namespace Qonote.Infrastructure.Infrastructure.Subscriptions;
 
 /// <summary>
 /// Lemon Squeezy API integration service
@@ -23,6 +25,7 @@ public class PaymentService : IPaymentService
     private readonly IWriteRepository<Payment, int> _paymentsWriter;
     private readonly IUnitOfWork _uow;
     private readonly ICacheInvalidationService _cacheInvalidation;
+    private readonly ILogger<PaymentService> _logger;
 
     public PaymentService(
         HttpClient httpClient,
@@ -32,7 +35,8 @@ public class PaymentService : IPaymentService
         IWriteRepository<UserSubscription, int> subsWriter,
         IWriteRepository<Payment, int> paymentsWriter,
         IUnitOfWork uow,
-        ICacheInvalidationService cacheInvalidation)
+        ICacheInvalidationService cacheInvalidation,
+        ILogger<PaymentService> logger)
     {
         _httpClient = httpClient;
         _settings = settings.Value;
@@ -42,15 +46,18 @@ public class PaymentService : IPaymentService
         _paymentsWriter = paymentsWriter;
         _uow = uow;
         _cacheInvalidation = cacheInvalidation;
+        _logger = logger;
 
         // Configure HttpClient for Lemon Squeezy API
         _httpClient.BaseAddress = new Uri(_settings.BaseUrl);
         _httpClient.DefaultRequestHeaders.Add("Accept", "application/vnd.api+json");
         _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_settings.ApiKey}");
+        _logger.LogDebug("LemonSqueezy HttpClient configured. baseUrl={BaseUrl}", _settings.BaseUrl);
     }
 
     public async Task<string> CreateCheckoutUrlAsync(string email, string customerName, int variantId, string userId, int? priceId = null, string? successUrl = null, string? cancelUrl = null, CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("LS CreateCheckoutUrlAsync started. userId={UserId}, variantId={VariantId}", userId, variantId);
         if (string.IsNullOrWhiteSpace(_settings.StoreId))
             throw new InvalidOperationException("LemonSqueezy:StoreId is not configured.");
 
@@ -111,7 +118,8 @@ public class PaymentService : IPaymentService
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            throw new InvalidOperationException($"Lemon Squeezy error ({(int)response.StatusCode}): {responseBody}");
+            _logger.LogWarning("LS checkout create failed. userId={UserId}, variantId={VariantId}, status={StatusCode}", userId, variantId, (int)response.StatusCode);
+            throw new InvalidOperationException($"Lemon Squeezy error ({(int)response.StatusCode})");
         }
 
         using var doc = JsonDocument.Parse(responseBody);
@@ -121,11 +129,15 @@ public class PaymentService : IPaymentService
 
         if (responseAttributes.TryGetProperty("url", out var urlProp) && urlProp.ValueKind == JsonValueKind.String)
         {
-            return urlProp.GetString()!;
+            var url = urlProp.GetString()!;
+            _logger.LogInformation("LS checkout create succeeded. userId={UserId}, variantId={VariantId}", userId, variantId);
+            return url;
         }
         if (responseAttributes.TryGetProperty("checkout_url", out var checkoutUrlProp) && checkoutUrlProp.ValueKind == JsonValueKind.String)
         {
-            return checkoutUrlProp.GetString()!;
+            var url = checkoutUrlProp.GetString()!;
+            _logger.LogInformation("LS checkout create succeeded. userId={UserId}, variantId={VariantId}", userId, variantId);
+            return url;
         }
 
         throw new InvalidOperationException("Lemon Squeezy response did not include a checkout URL.");
@@ -133,6 +145,7 @@ public class PaymentService : IPaymentService
 
     public async Task CancelSubscriptionAsync(string externalSubscriptionId, CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("LS cancel subscription started. externalSubscriptionId={ExternalSubscriptionId}", externalSubscriptionId);
         var payload = new
         {
             data = new
@@ -146,11 +159,17 @@ public class PaymentService : IPaymentService
         using var req = new HttpRequestMessage(HttpMethod.Patch, $"subscriptions/{externalSubscriptionId}");
         req.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/vnd.api+json");
         using var resp = await _httpClient.SendAsync(req, cancellationToken);
+        if (!resp.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("LS cancel subscription failed. externalSubscriptionId={ExternalSubscriptionId}, status={StatusCode}", externalSubscriptionId, (int)resp.StatusCode);
+        }
         resp.EnsureSuccessStatusCode();
+        _logger.LogInformation("LS cancel subscription succeeded. externalSubscriptionId={ExternalSubscriptionId}", externalSubscriptionId);
     }
 
     public async Task ResumeSubscriptionAsync(string externalSubscriptionId, CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("LS resume subscription started. externalSubscriptionId={ExternalSubscriptionId}", externalSubscriptionId);
         var payload = new
         {
             data = new
@@ -164,11 +183,17 @@ public class PaymentService : IPaymentService
         using var req = new HttpRequestMessage(HttpMethod.Patch, $"subscriptions/{externalSubscriptionId}");
         req.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/vnd.api+json");
         using var resp = await _httpClient.SendAsync(req, cancellationToken);
+        if (!resp.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("LS resume subscription failed. externalSubscriptionId={ExternalSubscriptionId}, status={StatusCode}", externalSubscriptionId, (int)resp.StatusCode);
+        }
         resp.EnsureSuccessStatusCode();
+        _logger.LogInformation("LS resume subscription succeeded. externalSubscriptionId={ExternalSubscriptionId}", externalSubscriptionId);
     }
 
     public async Task<string?> GetOrCreateCustomerAsync(string email, string name, CancellationToken cancellationToken = default)
     {
+        _logger.LogDebug("LS getOrCreateCustomer started.");
         var payload = new
         {
             data = new
@@ -183,22 +208,34 @@ public class PaymentService : IPaymentService
         using var resp = await _httpClient.SendAsync(req, cancellationToken);
         if (!resp.IsSuccessStatusCode)
         {
+            _logger.LogWarning("LS getOrCreateCustomer failed. status={StatusCode}", (int)resp.StatusCode);
             return null;
         }
 
         using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(cancellationToken));
         var id = doc.RootElement.GetProperty("data").GetProperty("id").GetString();
+        _logger.LogInformation("LS getOrCreateCustomer succeeded. externalCustomerId={ExternalCustomerId}", id);
         return id;
     }
 
     public async Task HandleWebhookAsync(string payload, string? signature = null, CancellationToken cancellationToken = default)
     {
+        var correlationId = Guid.NewGuid().ToString("n");
+        using var corrScope = _logger.BeginScope(new Dictionary<string, object?>
+        {
+            ["CorrelationId"] = correlationId,
+            ["Source"] = "LemonSqueezy"
+        });
+        _logger.LogDebug("Webhook received from LS. signaturePresent={HasSig}", !string.IsNullOrWhiteSpace(signature));
         // Verify signature (HMAC-SHA256, hex)
         if (string.IsNullOrWhiteSpace(_settings.WebhookSecret))
             throw new InvalidOperationException("LemonSqueezy:WebhookSecret not configured.");
 
         if (!VerifySignature(_settings.WebhookSecret, payload, signature))
+        {
+            _logger.LogWarning("Invalid webhook signature.");
             throw new UnauthorizedAccessException("Invalid webhook signature.");
+        }
 
         using var doc = JsonDocument.Parse(payload);
         var root = doc.RootElement;
@@ -217,6 +254,13 @@ public class PaymentService : IPaymentService
             externalCustomerId = custId.ValueKind == JsonValueKind.String ? custId.GetString() : custId.GetInt32().ToString();
         }
 
+        using var eventScope = _logger.BeginScope(new Dictionary<string, object?>
+        {
+            ["LsEvent"] = eventName,
+            ["LsDataId"] = dataId,
+            ["HasUserId"] = !string.IsNullOrWhiteSpace(userId)
+        });
+        _logger.LogInformation("Webhook parsed. event={Event}, dataId={DataId}, hasUserId={HasUserId}", eventName, dataId, !string.IsNullOrWhiteSpace(userId));
         switch (eventName)
         {
             case "subscription_created":
@@ -228,6 +272,7 @@ public class PaymentService : IPaymentService
                 await HandleSubscriptionPaymentSuccess(userId, dataId, attributes, cancellationToken);
                 break;
             default:
+                _logger.LogDebug("Webhook event ignored. event={Event}", eventName);
                 break;
         }
     }
@@ -251,6 +296,7 @@ public class PaymentService : IPaymentService
 
     private async Task HandleSubscriptionEvent(string? userId, string externalSubscriptionId, JsonElement attributes, CancellationToken ct)
     {
+        _logger.LogDebug("HandleSubscriptionEvent. externalSubscriptionId={ExternalSubscriptionId}", externalSubscriptionId);
         int? variantId = null;
         if (attributes.TryGetProperty("variant_id", out var vid) && vid.TryGetInt32(out var v)) variantId = v;
         // Extract external customer id if present
@@ -273,6 +319,10 @@ public class PaymentService : IPaymentService
                 p => p.ExternalPriceIdMonthly == variantIdStr || p.ExternalPriceIdYearly == variantIdStr,
                 ct);
             plan = withVariant.FirstOrDefault();
+            if (plan is not null)
+            {
+                _logger.LogDebug("Plan matched by variant. externalSubscriptionId={ExternalSubscriptionId}, planId={PlanId}", externalSubscriptionId, plan.Id);
+            }
         }
 
         // Fallback: try finding by product_id if variant lookup failed
@@ -281,6 +331,14 @@ public class PaymentService : IPaymentService
             var productIdStr = productId.ToString();
             var withProduct = await _plans.GetAllAsync(p => p.ExternalProductId == productIdStr, ct);
             plan = withProduct.FirstOrDefault();
+            if (plan is not null)
+            {
+                _logger.LogDebug("Plan matched by product. externalSubscriptionId={ExternalSubscriptionId}, planId={PlanId}", externalSubscriptionId, plan.Id);
+            }
+        }
+        if (plan is null)
+        {
+            _logger.LogWarning("No plan matched for subscription. externalSubscriptionId={ExternalSubscriptionId}", externalSubscriptionId);
         }
 
         // Map status
@@ -322,7 +380,7 @@ public class PaymentService : IPaymentService
         {
             if (userId is null)
                 throw new ValidationException(new[] { new FluentValidation.Results.ValidationFailure("userId", "Webhook missing custom user_id.") });
-
+            _logger.LogInformation("Creating new subscription from webhook. userId={UserId}, externalSubscriptionId={ExternalSubscriptionId}, status={Status}, interval={Interval}", userId, externalSubscriptionId, status, interval);
             sub = new UserSubscription
             {
                 UserId = userId,
@@ -341,6 +399,7 @@ public class PaymentService : IPaymentService
         }
         else
         {
+            _logger.LogInformation("Updating subscription from webhook. externalSubscriptionId={ExternalSubscriptionId}, status={Status}, interval={Interval}", externalSubscriptionId, status, interval);
             if (plan is not null && plan.Id > 0) sub.PlanId = plan.Id;
             sub.Status = status;
             sub.CurrentPeriodEnd = currentPeriodEnd;
@@ -360,16 +419,19 @@ public class PaymentService : IPaymentService
         }
 
         await _uow.SaveChangesAsync(ct);
+        _logger.LogDebug("Subscription saved. externalSubscriptionId={ExternalSubscriptionId}, planId={PlanId}, status={Status}", externalSubscriptionId, sub.PlanId, sub.Status);
 
         // Invalidate user cache since plan has changed
         if (!string.IsNullOrWhiteSpace(userId))
         {
             await _cacheInvalidation.RemoveMeAsync(userId, ct);
+            _logger.LogDebug("Cache invalidated for user. userId={UserId}", userId);
         }
     }
 
     private async Task HandleSubscriptionPaymentSuccess(string? userId, string? invoiceId, JsonElement attributes, CancellationToken ct)
     {
+        _logger.LogDebug("HandleSubscriptionPaymentSuccess started. userIdPresent={HasUserId}", !string.IsNullOrWhiteSpace(userId));
         decimal amount = 0m;
         if (attributes.TryGetProperty("total", out var total) && total.TryGetDecimal(out var totalDec))
         {
@@ -396,6 +458,7 @@ public class PaymentService : IPaymentService
 
         if (userId is null)
         {
+            _logger.LogDebug("Payment success ignored: missing userId.");
             return;
         }
 
@@ -416,6 +479,7 @@ public class PaymentService : IPaymentService
 
         if (sub is null)
         {
+            _logger.LogWarning("Payment success: no matching subscription found. userId={UserId}", userId);
             return;
         }
 
@@ -435,6 +499,7 @@ public class PaymentService : IPaymentService
 
         await _paymentsWriter.AddAsync(payment, ct);
         await _uow.SaveChangesAsync(ct);
+        _logger.LogInformation("Payment recorded. userId={UserId}, subscriptionId={SubscriptionId}, amount={Amount} {Currency}", userId, sub.Id, amount, currency);
     }
 }
 

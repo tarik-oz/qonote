@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Qonote.Infrastructure.Security.External.Google;
+namespace Qonote.Infrastructure.Infrastructure.Security.External.Google;
 
 public sealed class GoogleTokenResponse
 {

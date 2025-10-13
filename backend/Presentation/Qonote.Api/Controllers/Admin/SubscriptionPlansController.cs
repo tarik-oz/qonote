@@ -47,7 +47,20 @@ public class SubscriptionPlansController : ControllerBase
         return Ok(new { id });
     }
 
-    public sealed record UpdatePlanBody(string PlanCode, string Name, int MaxNoteCount);
+    public sealed record UpdatePlanBody(
+        string PlanCode,
+        string Name,
+        int MaxNoteCount,
+        string? Description,
+        decimal MonthlyPrice,
+        decimal YearlyPrice,
+        string Currency,
+        int TrialDays,
+        bool IsActive,
+        string? ExternalProductId,
+        string? ExternalPriceIdMonthly,
+        string? ExternalPriceIdYearly
+    );
 
     [HttpPut("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -55,7 +68,21 @@ public class SubscriptionPlansController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Update(int id, [FromBody] UpdatePlanBody body, CancellationToken ct)
     {
-        await _mediator.Send(new UpdateSubscriptionPlanCommand(id, body.PlanCode, body.Name, body.MaxNoteCount), ct);
+        await _mediator.Send(new UpdateSubscriptionPlanCommand(
+            id,
+            body.PlanCode,
+            body.Name,
+            body.MaxNoteCount,
+            body.Description,
+            body.MonthlyPrice,
+            body.YearlyPrice,
+            body.Currency,
+            body.TrialDays,
+            body.IsActive,
+            body.ExternalProductId,
+            body.ExternalPriceIdMonthly,
+            body.ExternalPriceIdYearly
+        ), ct);
         return NoContent();
     }
 

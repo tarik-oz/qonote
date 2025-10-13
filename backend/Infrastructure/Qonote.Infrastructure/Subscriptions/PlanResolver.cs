@@ -3,7 +3,7 @@ using Qonote.Core.Application.Abstractions.Subscriptions;
 using Qonote.Infrastructure.Persistence.Context;
 using Qonote.Core.Domain.Enums;
 
-namespace Qonote.Infrastructure.Subscriptions;
+namespace Qonote.Infrastructure.Infrastructure.Subscriptions;
 
 public class PlanResolver : IPlanResolver
 {

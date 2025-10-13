@@ -2,7 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Qonote.Core.Application.Abstractions.Security;
 
-namespace Qonote.Infrastructure.Security;
+namespace Qonote.Infrastructure.Infrastructure.Security;
 
 public class CurrentUserService : ICurrentUserService
 {
