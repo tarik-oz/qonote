@@ -9,6 +9,7 @@ using Qonote.Core.Application.Features.Subscriptions.CancelMySubscription;
 using Qonote.Core.Application.Features.Subscriptions.ResumeMySubscription;
 using Qonote.Core.Application.Features.Subscriptions.ListMyPayments;
 using Qonote.Core.Domain.Enums;
+using Qonote.Core.Application.Features.Subscriptions.RedeemPromoCode;
 
 namespace Qonote.Api.Controllers;
 
@@ -92,9 +93,21 @@ public class SubscriptionsController : ControllerBase
         var result = await _mediator.Send(new ListMyPaymentsQuery(), cancellationToken);
         return Ok(result);
     }
+
+    /// <summary>
+    /// Redeem a promo code for the current user
+    /// </summary>
+    [Authorize]
+    [HttpPost("redeem")]
+    public async Task<ActionResult<object>> Redeem([FromBody] RedeemRequest body, CancellationToken ct)
+    {
+        var subId = await _mediator.Send(new RedeemPromoCodeCommand(body.Code), ct);
+        return Ok(new { subscriptionId = subId });
+    }
 }
 
 // Request DTOs
 public record CreateCheckoutRequest(int PlanId, BillingInterval BillingInterval, string? SuccessUrl, string? CancelUrl);
 public record CancelSubscriptionRequest(bool CancelAtPeriodEnd, string? Reason);
+public record RedeemRequest(string Code);
 

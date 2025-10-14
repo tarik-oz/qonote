@@ -21,6 +21,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
     public DbSet<UserSubscription> UserSubscriptions { get; set; }
     public DbSet<Payment> Payments { get; set; }
+    public DbSet<PromoCode> PromoCodes { get; set; }
+    public DbSet<PromoCodeRedemption> PromoCodeRedemptions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
