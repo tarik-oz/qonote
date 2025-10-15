@@ -36,7 +36,7 @@ public sealed class GetMyPlanQueryHandler : IRequestHandler<GetMyPlanQuery, MyPl
 
         var effective = await _planResolver.GetEffectivePlanAsync(userId, cancellationToken);
 
-        var subs = await _userSubReader.GetAllAsync(us => us.UserId == userId && us.StartDate <= now && us.EndDate > now, cancellationToken);
+        var subs = await _userSubReader.GetAllAsync(us => us.UserId == userId && us.StartDate <= now && (us.EndDate == null || us.EndDate > now), cancellationToken);
         var sub = subs.OrderByDescending(s => s.StartDate).FirstOrDefault();
         string planName;
         if (sub is not null)
@@ -49,8 +49,33 @@ public sealed class GetMyPlanQueryHandler : IRequestHandler<GetMyPlanQuery, MyPl
             planName = effective.PlanCode; // fallback
         }
 
-        var currentCount = await _noteQueries.CountActiveNotesAsync(userId, cancellationToken);
-        var remaining = Math.Max(0, effective.MaxNoteCount - currentCount);
+        // Determine period window and count notes created in that window
+        DateTime periodStart;
+        DateTime periodEnd;
+        if (sub is not null)
+        {
+            if (sub.CurrentPeriodStart.HasValue && sub.CurrentPeriodEnd.HasValue)
+            {
+                periodStart = sub.CurrentPeriodStart.Value;
+                periodEnd = sub.CurrentPeriodEnd.Value;
+            }
+            else
+            {
+                var interval = sub.BillingInterval;
+                (periodStart, periodEnd) = Common.Subscriptions.SubscriptionPeriodHelper.ComputeContainingPeriod(sub.StartDate, interval, now, sub.EndDate);
+            }
+        }
+        else
+        {
+            // FREE users: anchor at user creation and use monthly window
+            // We don't have ApplicationUser here via repository, so fall back to last 30 days aligned monthly window from now
+            var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            periodStart = monthStart;
+            periodEnd = monthStart.AddMonths(1);
+        }
+
+        var createdThisPeriod = await _noteQueries.CountNotesCreatedInPeriodAsync(userId, periodStart, periodEnd, cancellationToken);
+        var remaining = Math.Max(0, effective.MaxNoteCount == int.MaxValue ? int.MaxValue : effective.MaxNoteCount - createdThisPeriod);
 
         return new MyPlanDto(
             effective.PlanId,
@@ -59,7 +84,7 @@ public sealed class GetMyPlanQueryHandler : IRequestHandler<GetMyPlanQuery, MyPl
             effective.MaxNoteCount,
             sub?.StartDate,
             sub?.EndDate,
-            currentCount,
+            createdThisPeriod,
             remaining
         );
     }

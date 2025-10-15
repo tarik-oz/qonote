@@ -74,6 +74,15 @@ public sealed class NoteQueries : INoteQueries
             .CountAsync(cancellationToken);
     }
 
+    public async Task<int> CountNotesCreatedInPeriodAsync(string userId, DateTime startUtc, DateTime endUtc, CancellationToken cancellationToken)
+    {
+        // Half-open interval [start, end): created at >= start and < end
+        return await _db.Set<Note>()
+            .AsNoTracking()
+            .Where(n => n.UserId == userId && n.CreatedAt >= startUtc && n.CreatedAt < endUtc)
+            .CountAsync(cancellationToken);
+    }
+
     public async Task<SearchNotesResponse> SearchNotesAsync(string userId, string query, int pageNumber, int pageSize, CancellationToken cancellationToken)
     {
         // Return empty result for very short queries (debounce/UX guard)
