@@ -1,85 +1,96 @@
-using Microsoft.EntityFrameworkCore;
 using Qonote.Core.Application.Abstractions.Subscriptions;
 using Qonote.Core.Application.Exceptions;
-using Qonote.Infrastructure.Persistence.Context;
-using Qonote.Core.Application.Abstractions.Queries;
 using Qonote.Core.Domain.Enums;
 using Qonote.Core.Domain.Entities;
+using Qonote.Core.Application.Abstractions.Data;
 
 namespace Qonote.Infrastructure.Infrastructure.Subscriptions;
 
 public class LimitCheckerService : ILimitCheckerService
 {
-    private readonly ApplicationDbContext _db;
     private readonly IPlanResolver _planResolver;
-    private readonly INoteQueries _noteQueries;
+    private readonly IReadRepository<UserSubscription, int> _userSubReader;
+    private readonly IWriteRepository<UserSubscription, int> _userSubWriter;
+    private readonly IReadRepository<SubscriptionPlan, int> _planReader;
 
-    public LimitCheckerService(ApplicationDbContext db, IPlanResolver planResolver, INoteQueries noteQueries)
+    public LimitCheckerService(
+        IPlanResolver planResolver,
+        IReadRepository<UserSubscription, int> userSubReader,
+        IWriteRepository<UserSubscription, int> userSubWriter,
+        IReadRepository<SubscriptionPlan, int> planReader)
     {
-        _db = db;
         _planResolver = planResolver;
-        _noteQueries = noteQueries;
+        _userSubReader = userSubReader;
+        _userSubWriter = userSubWriter;
+        _planReader = planReader;
     }
 
-    public async Task EnsureUserCanCreateNoteAsync(string userId, CancellationToken cancellationToken = default)
+    public async Task EnsureAndConsumeNoteQuotaAsync(string userId, CancellationToken cancellationToken = default)
     {
         var plan = await _planResolver.GetEffectivePlanAsync(userId, cancellationToken);
 
-        // If unlimited, allow
-        if (plan.MaxNoteCount == int.MaxValue)
-        {
-            return;
-        }
+        // Unlimited → nothing to consume
+        if (plan.MaxNoteCount == int.MaxValue) return;
 
         var now = DateTime.UtcNow;
 
-        // Find the active subscription to determine current period window
-        var sub = await _db.Set<UserSubscription>()
-            .AsNoTracking()
-            .Where(us => us.UserId == userId
-                && !us.IsDeleted
-                && us.StartDate <= now
-                && (us.EndDate == null || us.EndDate > now)
-                && (us.Status == SubscriptionStatus.Active || us.Status == SubscriptionStatus.Trialing || (us.Status == SubscriptionStatus.Cancelled && us.EndDate > now)))
-            .OrderByDescending(us => us.StartDate)
-            .FirstOrDefaultAsync(cancellationToken);
+        // Load active or current subscription row
+        var candidates = await _userSubReader.GetAllAsync(us => us.UserId == userId
+            && us.StartDate <= now
+            && (us.EndDate == null || us.EndDate > now)
+            && (us.Status == SubscriptionStatus.Active || us.Status == SubscriptionStatus.Trialing || (us.Status == SubscriptionStatus.Cancelled && us.EndDate > now)), cancellationToken);
+        var sub = candidates.OrderByDescending(us => us.StartDate).FirstOrDefault();
 
-        DateTime periodStart;
-        DateTime periodEnd;
-
-        if (sub is not null)
+        if (sub is null)
         {
-            // Prefer explicit current period if present; otherwise compute from StartDate and BillingInterval
-            if (sub.CurrentPeriodStart.HasValue && sub.CurrentPeriodEnd.HasValue)
+            // Development clean state: FREE sub should exist from registration; to be safe, create on-the-fly.
+            var freePlans = await _planReader.GetAllAsync(p => p.PlanCode == "FREE", cancellationToken);
+            var freePlan = freePlans.FirstOrDefault()
+                ?? throw new InvalidOperationException("FREE plan not seeded.");
+            (var ps, var pe) = Qonote.Core.Application.Common.Subscriptions.SubscriptionPeriodHelper.ComputeContainingPeriod(now, BillingInterval.Monthly, now);
+            sub = new UserSubscription
             {
-                periodStart = sub.CurrentPeriodStart.Value;
-                periodEnd = sub.CurrentPeriodEnd.Value;
-            }
-            else
-            {
-                var interval = sub.BillingInterval;
-                (periodStart, periodEnd) = Qonote.Core.Application.Common.Subscriptions.SubscriptionPeriodHelper.ComputeContainingPeriod(sub.StartDate, interval, now, sub.EndDate);
-            }
-        }
-        else
-        {
-            // No paid/trial subscription: treat as FREE. Create a synthetic month window anchored at account creation.
-            var user = await _db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => new { u.CreatedAt }).FirstOrDefaultAsync(cancellationToken);
-            var anchor = user?.CreatedAt ?? now; // fallback to now if missing
-            (periodStart, periodEnd) = Qonote.Core.Application.Common.Subscriptions.SubscriptionPeriodHelper.ComputeContainingPeriod(anchor, BillingInterval.Monthly, now, null);
+                UserId = userId,
+                PlanId = freePlan.Id,
+                StartDate = now,
+                Status = SubscriptionStatus.Active,
+                BillingInterval = BillingInterval.Monthly,
+                AutoRenew = false,
+                PaymentProvider = "Free",
+                CurrentPeriodStart = ps,
+                CurrentPeriodEnd = pe,
+                UsedNoteCount = 0
+            };
+            await _userSubWriter.AddAsync(sub, cancellationToken);
         }
 
-        var createdThisPeriod = await _noteQueries.CountNotesCreatedInPeriodAsync(userId, periodStart, periodEnd, cancellationToken);
+        // Ensure current period window is up-to-date; roll forward if needed
+        var (start, end) = Qonote.Core.Application.Common.Subscriptions.SubscriptionPeriodHelper.ComputeContainingPeriod(
+            sub.CurrentPeriodStart ?? sub.StartDate,
+            sub.BillingInterval,
+            now,
+            sub.EndDate);
+        if (sub.CurrentPeriodStart != start || sub.CurrentPeriodEnd != end)
+        {
+            sub.CurrentPeriodStart = start;
+            sub.CurrentPeriodEnd = end;
+            sub.UsedNoteCount = 0; // reset counter on period roll
+            _userSubWriter.Update(sub);
+        }
 
-        if (createdThisPeriod >= plan.MaxNoteCount)
+        if (sub.UsedNoteCount >= plan.MaxNoteCount)
         {
             var failures = new[]
             {
                 new FluentValidation.Results.ValidationFailure(
                     "Limit.MaxNoteCount",
-                    $"You reached the monthly note limit for your plan ({plan.PlanCode}): {createdThisPeriod}/{plan.MaxNoteCount}.")
+                    $"You reached the monthly note limit for your plan ({plan.PlanCode}): {sub.UsedNoteCount}/{plan.MaxNoteCount}.")
             };
             throw new ValidationException(failures);
         }
+
+        // Consume one quota; defer SaveChanges to UnitOfWork so note + quota update commit atomically
+        sub.UsedNoteCount += 1;
+        _userSubWriter.Update(sub);
     }
 }

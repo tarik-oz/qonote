@@ -85,7 +85,9 @@ builder.Services.AddSwaggerGen(options =>
 
 // Health Checks
 builder.Services.AddHealthChecks()
-    .AddCheck<DatabaseHealthCheck>("db");
+    .AddCheck<DatabaseHealthCheck>("db", tags: ["critical"])
+    .AddCheck<RedisHealthCheck>("redis", tags: ["critical"])
+    .AddCheck<BlobStorageHealthCheck>("blob", tags: ["critical"]);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -173,7 +175,8 @@ app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthC
 
 app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
-    Predicate = check => true,
+    // Only run critical checks for readiness
+    Predicate = check => check.Tags.Contains("critical"),
     ResponseWriter = async (ctx, report) =>
     {
         ctx.Response.ContentType = "application/json";

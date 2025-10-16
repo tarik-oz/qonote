@@ -2,5 +2,6 @@ namespace Qonote.Core.Application.Abstractions.Subscriptions;
 
 public interface ILimitCheckerService
 {
-    Task EnsureUserCanCreateNoteAsync(string userId, CancellationToken cancellationToken = default);
+    // Checks remaining quota and, if allowed, increments usage for the current period in the same transaction scope.
+    Task EnsureAndConsumeNoteQuotaAsync(string userId, CancellationToken cancellationToken = default);
 }

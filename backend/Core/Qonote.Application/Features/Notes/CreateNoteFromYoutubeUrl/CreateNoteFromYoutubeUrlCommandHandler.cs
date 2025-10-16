@@ -57,8 +57,8 @@ public sealed class CreateNoteFromYoutubeUrlCommandHandler : IRequestHandler<Cre
             throw new ValidationException(new[] { new FluentValidation.Results.ValidationFailure("YoutubeUrl", "Invalid YouTube URL.") });
         }
 
-        // Enforce subscription limit for creating notes
-        await _limitChecker.EnsureUserCanCreateNoteAsync(userId, cancellationToken);
+        // Enforce subscription limit for creating notes and consume one quota
+        await _limitChecker.EnsureAndConsumeNoteQuotaAsync(userId, cancellationToken);
 
         // Per-user title uniqueness and duplicate video are enforced via business rules (pipeline behavior)
         var trimmedCustomTitle = request.CustomTitle?.Trim();

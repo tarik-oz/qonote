@@ -1,6 +1,5 @@
 using MediatR;
 using Qonote.Core.Application.Abstractions.Data;
-using Qonote.Core.Application.Abstractions.Queries;
 using Qonote.Core.Application.Abstractions.Security;
 using Qonote.Core.Application.Abstractions.Subscriptions;
 using Qonote.Core.Domain.Entities;
@@ -11,20 +10,17 @@ public sealed class GetMyPlanQueryHandler : IRequestHandler<GetMyPlanQuery, MyPl
 {
     private readonly ICurrentUserService _currentUser;
     private readonly IPlanResolver _planResolver;
-    private readonly INoteQueries _noteQueries;
     private readonly IReadRepository<UserSubscription, int> _userSubReader;
     private readonly IReadRepository<SubscriptionPlan, int> _planReader;
 
     public GetMyPlanQueryHandler(
         ICurrentUserService currentUser,
         IPlanResolver planResolver,
-        INoteQueries noteQueries,
         IReadRepository<UserSubscription, int> userSubReader,
         IReadRepository<SubscriptionPlan, int> planReader)
     {
         _currentUser = currentUser;
         _planResolver = planResolver;
-        _noteQueries = noteQueries;
         _userSubReader = userSubReader;
         _planReader = planReader;
     }
@@ -49,33 +45,9 @@ public sealed class GetMyPlanQueryHandler : IRequestHandler<GetMyPlanQuery, MyPl
             planName = effective.PlanCode; // fallback
         }
 
-        // Determine period window and count notes created in that window
-        DateTime periodStart;
-        DateTime periodEnd;
-        if (sub is not null)
-        {
-            if (sub.CurrentPeriodStart.HasValue && sub.CurrentPeriodEnd.HasValue)
-            {
-                periodStart = sub.CurrentPeriodStart.Value;
-                periodEnd = sub.CurrentPeriodEnd.Value;
-            }
-            else
-            {
-                var interval = sub.BillingInterval;
-                (periodStart, periodEnd) = Common.Subscriptions.SubscriptionPeriodHelper.ComputeContainingPeriod(sub.StartDate, interval, now, sub.EndDate);
-            }
-        }
-        else
-        {
-            // FREE users: anchor at user creation and use monthly window
-            // We don't have ApplicationUser here via repository, so fall back to last 30 days aligned monthly window from now
-            var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-            periodStart = monthStart;
-            periodEnd = monthStart.AddMonths(1);
-        }
-
-        var createdThisPeriod = await _noteQueries.CountNotesCreatedInPeriodAsync(userId, periodStart, periodEnd, cancellationToken);
-        var remaining = Math.Max(0, effective.MaxNoteCount == int.MaxValue ? int.MaxValue : effective.MaxNoteCount - createdThisPeriod);
+        // Use the subscription's counter for current monthly usage
+        var used = sub?.UsedNoteCount ?? 0;
+        var remaining = Math.Max(0, effective.MaxNoteCount == int.MaxValue ? int.MaxValue : effective.MaxNoteCount - used);
 
         return new MyPlanDto(
             effective.PlanId,
@@ -84,7 +56,7 @@ public sealed class GetMyPlanQueryHandler : IRequestHandler<GetMyPlanQuery, MyPl
             effective.MaxNoteCount,
             sub?.StartDate,
             sub?.EndDate,
-            createdThisPeriod,
+            used,
             remaining
         );
     }

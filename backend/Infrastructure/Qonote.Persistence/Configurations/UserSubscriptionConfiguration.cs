@@ -38,6 +38,9 @@ public class UserSubscriptionConfiguration : IEntityTypeConfiguration<UserSubscr
             .HasMaxLength(50)
             .IsRequired();
 
+        builder.Property(us => us.UsedNoteCount)
+            .HasDefaultValue(0);
+
         // Relationships
         builder.HasOne(us => us.User)
             .WithMany(u => u.UserSubscriptions)
