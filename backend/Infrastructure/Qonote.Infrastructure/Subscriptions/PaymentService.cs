@@ -8,6 +8,7 @@ using System.Text.Json;
 using Qonote.Core.Application.Exceptions;
 using Qonote.Core.Application.Abstractions.Caching;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 
 namespace Qonote.Infrastructure.Infrastructure.Subscriptions;
 
@@ -26,7 +27,9 @@ public class PaymentService : IPaymentService
     private readonly IUnitOfWork _uow;
     private readonly ICacheInvalidationService _cacheInvalidation;
     private readonly ILogger<PaymentService> _logger;
+    private readonly IConnectionMultiplexer? _redis;
 
+    // Backward-compatible constructor (no Redis)
     public PaymentService(
         HttpClient httpClient,
         Microsoft.Extensions.Options.IOptions<LemonSqueezySettings> settings,
@@ -37,6 +40,21 @@ public class PaymentService : IPaymentService
         IUnitOfWork uow,
         ICacheInvalidationService cacheInvalidation,
         ILogger<PaymentService> logger)
+        : this(httpClient, settings, plans, subsReader, subsWriter, paymentsWriter, uow, cacheInvalidation, logger, null)
+    { }
+
+    // Primary constructor with optional Redis multiplexer for idempotency
+    public PaymentService(
+        HttpClient httpClient,
+        Microsoft.Extensions.Options.IOptions<LemonSqueezySettings> settings,
+        IReadRepository<SubscriptionPlan, int> plans,
+        IReadRepository<UserSubscription, int> subsReader,
+        IWriteRepository<UserSubscription, int> subsWriter,
+        IWriteRepository<Payment, int> paymentsWriter,
+        IUnitOfWork uow,
+        ICacheInvalidationService cacheInvalidation,
+        ILogger<PaymentService> logger,
+        IConnectionMultiplexer? redis)
     {
         _httpClient = httpClient;
         _settings = settings.Value;
@@ -47,6 +65,7 @@ public class PaymentService : IPaymentService
         _uow = uow;
         _cacheInvalidation = cacheInvalidation;
         _logger = logger;
+        _redis = redis;
 
         // Configure HttpClient for Lemon Squeezy API
         _httpClient.BaseAddress = new Uri(_settings.BaseUrl);
@@ -247,6 +266,33 @@ public class PaymentService : IPaymentService
         var data = root.GetProperty("data");
         var dataId = data.GetProperty("id").GetString();
         var attributes = data.GetProperty("attributes");
+        // Best-effort: determine unique event id for idempotency (prefer meta.event_id if present)
+        string? eventId = null;
+        if (meta.ValueKind != JsonValueKind.Undefined && meta.TryGetProperty("event_id", out var evIdProp) && evIdProp.ValueKind == JsonValueKind.String)
+        {
+            eventId = evIdProp.GetString();
+        }
+        var dedupeKey = $"webhook:ls:{eventId ?? ($"{eventName}:{dataId}")}";
+
+        // Fast idempotency with Redis SETNX (3 days TTL). If Redis is not configured, continue without dedupe.
+        if (_redis is not null)
+        {
+            try
+            {
+                var db = _redis.GetDatabase();
+                var acquired = await db.StringSetAsync(dedupeKey, "1", expiry: TimeSpan.FromDays(3), when: When.NotExists);
+                if (!acquired)
+                {
+                    _logger.LogInformation("Duplicate webhook skipped by idempotency key. key={DedupeKey}", dedupeKey);
+                    return; // silently acknowledge duplicate
+                }
+            }
+            catch (Exception ex)
+            {
+                // Do not block processing if Redis is unavailable
+                _logger.LogWarning(ex, "Idempotency check failed, proceeding without dedupe. key={DedupeKey}", dedupeKey);
+            }
+        }
         // Extract optional customer and price identifiers if available
         string? externalCustomerId = null;
         if (attributes.TryGetProperty("customer_id", out var custId))

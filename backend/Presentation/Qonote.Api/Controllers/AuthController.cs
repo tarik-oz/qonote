@@ -8,6 +8,7 @@ using Qonote.Core.Application.Features.Auth.Login;
 using Qonote.Core.Application.Features.Auth.Logout;
 using Qonote.Core.Application.Features.Auth.RefreshToken;
 using Qonote.Core.Application.Features.Auth.Register;
+using Microsoft.AspNetCore.RateLimiting;
 using Qonote.Core.Application.Features.Auth.SendConfirmationEmail;
 using Qonote.Core.Application.Features.Auth.ForgotPassword;
 using Qonote.Core.Application.Features.Auth.ResetPassword;
@@ -27,6 +28,7 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("register")]
+    [EnableRateLimiting("register")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Register(RegisterUserCommand command, CancellationToken ct)
@@ -57,6 +59,7 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("login")]
+    [EnableRateLimiting("login")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Login(LoginCommand command, CancellationToken ct)
@@ -87,6 +90,7 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpGet("google-login-url")]
+    [EnableRateLimiting("login")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetGoogleLoginUrl([FromQuery] GoogleLoginUrlQuery query, CancellationToken ct)
     {
@@ -96,6 +100,7 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("external-login")]
+    [EnableRateLimiting("login")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ExternalLogin(ExternalLoginCommand command, CancellationToken ct)

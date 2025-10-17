@@ -14,6 +14,7 @@ using System.Text.Json.Serialization;
 using Qonote.Presentation.Api.Infrastructure.Health;
 using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -89,6 +90,103 @@ builder.Services.AddHealthChecks()
     .AddCheck<RedisHealthCheck>("redis", tags: ["critical"])
     .AddCheck<BlobStorageHealthCheck>("blob", tags: ["critical"]);
 
+// Rate Limiting
+builder.Services.AddRateLimiter(options =>
+{
+    // Global limiter: per-user (100/min) if authenticated, else per-IP (60/min)
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+    {
+        // Skip rate limiting for health checks and webhooks
+        var path = httpContext.Request.Path.Value ?? string.Empty;
+        if (path.StartsWith("/health/", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/api/webhooks", StringComparison.OrdinalIgnoreCase))
+        {
+            return RateLimitPartition.GetNoLimiter("bypass");
+        }
+
+        // Determine key: user or IP
+        var userId = httpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                     ?? httpContext.User?.FindFirst("sub")?.Value
+                     ?? httpContext.User?.FindFirst("userid")?.Value;
+        var isAuthenticated = !string.IsNullOrWhiteSpace(userId);
+        var clientIp = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        if (isAuthenticated)
+        {
+            // 100 tokens per minute per user
+            return RateLimitPartition.GetTokenBucketLimiter($"user:{userId}", _ => new TokenBucketRateLimiterOptions
+            {
+                TokenLimit = 100,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0,
+                ReplenishmentPeriod = TimeSpan.FromMinutes(1),
+                TokensPerPeriod = 100,
+                AutoReplenishment = true
+            });
+        }
+
+        // Anonymous: 60 tokens per minute per IP
+        return RateLimitPartition.GetTokenBucketLimiter($"ip:{clientIp}", _ => new TokenBucketRateLimiterOptions
+        {
+            TokenLimit = 60,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0,
+            ReplenishmentPeriod = TimeSpan.FromMinutes(1),
+            TokensPerPeriod = 60,
+            AutoReplenishment = true
+        });
+    });
+
+    // Named policy: login (10/min per IP)
+    options.AddPolicy("login", httpContext =>
+    {
+        var clientIp = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter($"login:{clientIp}", _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+        });
+    });
+
+    // Named policy: register (3/hour per IP)
+    options.AddPolicy("register", httpContext =>
+    {
+        var clientIp = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter($"register:{clientIp}", _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 3,
+            Window = TimeSpan.FromHours(1),
+            QueueLimit = 0,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+        });
+    });
+
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, token) =>
+    {
+        var http = context.HttpContext;
+        // Optional: set Retry-After header if provided by limiter
+        if (context.Lease is not null && context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            http.Response.Headers["Retry-After"] = ((int)retryAfter.TotalSeconds).ToString();
+        }
+
+        // Log rejection
+        var logger = http.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("RateLimiter");
+        logger.LogWarning("Rate limit exceeded. Path={Path}, User={UserId}, IP={IP}",
+            http.Request.Path.Value,
+            http.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "anon",
+            http.Connection.RemoteIpAddress?.ToString());
+
+        http.Response.ContentType = "application/json";
+        var apiError = new ApiError(
+            message: "Too many requests. Please try again later.",
+            errorCode: "rate_limited");
+        await http.Response.WriteAsync(JsonSerializer.Serialize(apiError), token);
+    };
+});
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -158,6 +256,9 @@ app.UseWhen(
 
 app.UseAuthentication();
 
+// Apply Rate Limiting after auth so we can key by user
+app.UseRateLimiter();
+
 app.UseAuthorization();
 
 app.MapControllers();
@@ -171,7 +272,7 @@ app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthC
         ctx.Response.ContentType = "application/json";
         await ctx.Response.WriteAsync(JsonSerializer.Serialize(new { status = "Healthy" }));
     }
-}).AllowAnonymous();
+}).AllowAnonymous().DisableRateLimiting();
 
 app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
@@ -188,6 +289,6 @@ app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.Health
         };
         await ctx.Response.WriteAsync(JsonSerializer.Serialize(payload));
     }
-}).AllowAnonymous();
+}).AllowAnonymous().DisableRateLimiting();
 
 app.Run();
