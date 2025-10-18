@@ -8,10 +8,13 @@ public class ApiError
 
     public string? ErrorCode { get; }
 
-    public ApiError(string message, IDictionary<string, string[]>? errors = null, string? errorCode = null)
+    public string? CorrelationId { get; }
+
+    public ApiError(string message, IDictionary<string, string[]>? errors = null, string? errorCode = null, string? correlationId = null)
     {
         Message = message;
         Errors = errors;
         ErrorCode = errorCode;
+        CorrelationId = correlationId;
     }
 }

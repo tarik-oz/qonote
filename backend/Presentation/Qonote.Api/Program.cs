@@ -174,15 +174,21 @@ builder.Services.AddRateLimiter(options =>
 
         // Log rejection
         var logger = http.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("RateLimiter");
-        logger.LogWarning("Rate limit exceeded. Path={Path}, User={UserId}, IP={IP}",
+        const string cidHeader = "X-Correlation-Id";
+        var correlationId = http.Items[cidHeader] as string
+                             ?? http.Request.Headers[cidHeader].FirstOrDefault()
+                             ?? "n/a";
+        logger.LogWarning("Rate limit exceeded. Path={Path}, User={UserId}, IP={IP}, CorrelationId={CorrelationId}",
             http.Request.Path.Value,
             http.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "anon",
-            http.Connection.RemoteIpAddress?.ToString());
+            http.Connection.RemoteIpAddress?.ToString(),
+            correlationId);
 
         http.Response.ContentType = "application/json";
         var apiError = new ApiError(
             message: "Too many requests. Please try again later.",
-            errorCode: "rate_limited");
+            errorCode: "rate_limited",
+            correlationId: correlationId);
         await http.Response.WriteAsync(JsonSerializer.Serialize(apiError), token);
     };
 });
@@ -200,6 +206,36 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["TokenSettings:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["TokenSettings:Secret"]!)),
             ClockSkew = TimeSpan.Zero
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = async context =>
+            {
+                // Suppress the default WWW-Authenticate header body
+                context.HandleResponse();
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = "application/json";
+                var cid = context.HttpContext.Items["X-Correlation-Id"] as string
+                          ?? context.HttpContext.Request.Headers["X-Correlation-Id"].FirstOrDefault();
+                var apiError = new ApiError(
+                    message: "Authentication required.",
+                    errorCode: "unauthorized",
+                    correlationId: cid);
+                await context.Response.WriteAsync(JsonSerializer.Serialize(apiError));
+            },
+            OnForbidden = async context =>
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                context.Response.ContentType = "application/json";
+                var cid = context.HttpContext.Items["X-Correlation-Id"] as string
+                          ?? context.HttpContext.Request.Headers["X-Correlation-Id"].FirstOrDefault();
+                var apiError = new ApiError(
+                    message: "You don't have permission to access this resource.",
+                    errorCode: "forbidden",
+                    correlationId: cid);
+                await context.Response.WriteAsync(JsonSerializer.Serialize(apiError));
+            }
         };
     });
 
@@ -231,6 +267,19 @@ app.UseSerilogRequestLogging(options =>
         {
             diag.Set("clientIp", clientIp);
         }
+
+        // Correlation Id: read incoming or generate
+        const string cidHeader = "X-Correlation-Id";
+        var corr = http.Request.Headers[cidHeader].FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(corr)) corr = Guid.NewGuid().ToString("n");
+        diag.Set("correlationId", corr);
+        // store in HttpContext.Items so handlers can reuse
+        http.Items[cidHeader] = corr;
+        http.Response.OnStarting(() =>
+        {
+            http.Response.Headers[cidHeader] = corr;
+            return Task.CompletedTask;
+        });
     };
 });
 

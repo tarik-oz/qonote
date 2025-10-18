@@ -52,8 +52,22 @@ public static class ServiceRegistration
         services.AddSingleton<IEmailTemplateRenderer, EmailTemplateRenderer>();
         services.AddScoped<IPlanResolver, PlanResolver>();
         services.AddScoped<ILimitCheckerService, LimitCheckerService>();
-        services.AddHttpClient<IPaymentService, PaymentService>(); // HttpClient for Lemon Squeezy API
-        services.AddHttpClient<IYouTubeMetadataService, YouTubeMetadataService>();
+        // Resilient HttpClients (timeouts + lightweight retries)
+        services.AddHttpClient<IPaymentService, PaymentService>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(10);
+            })
+            .SetHandlerLifetime(TimeSpan.FromMinutes(5))
+            .AddHttpMessageHandler(sp => new Http.CorrelationIdHandler(sp.GetRequiredService<IHttpContextAccessor>()))
+            .AddHttpMessageHandler(() => new Http.RetryHandler(maxRetries: 3, baseDelay: TimeSpan.FromMilliseconds(200)));
+
+        services.AddHttpClient<IYouTubeMetadataService, YouTubeMetadataService>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(8);
+            })
+            .SetHandlerLifetime(TimeSpan.FromMinutes(5))
+            .AddHttpMessageHandler(sp => new Http.CorrelationIdHandler(sp.GetRequiredService<IHttpContextAccessor>()))
+            .AddHttpMessageHandler(() => new Http.RetryHandler(maxRetries: 2, baseDelay: TimeSpan.FromMilliseconds(200)));
 
         services
             .AddIdentityCore<ApplicationUser>()

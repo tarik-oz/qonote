@@ -57,5 +57,6 @@ public class UserSubscriptionConfiguration : IEntityTypeConfiguration<UserSubscr
         builder.HasIndex(us => new { us.UserId, us.Status });
         builder.HasIndex(us => us.ExternalSubscriptionId);
         builder.HasIndex(us => us.Status);
+        builder.HasIndex(us => new { us.UserId, us.Status, us.StartDate });
     }
 }
